@@ -20,7 +20,7 @@ def main():
     print(timeit.default_timer() - starttime)
     
     
-    search_k(train_X, train_y, attWt, 4, [3,5,7,9])
+    search_k(train_X, train_y, 4, [3,5,7,9])
     
     # best_k = 9
     
@@ -48,17 +48,14 @@ def get_nearest_neighbors(example_set, query, k):
     ret = np.sort(np.argpartition(dist, k)[:k])
     return ret
 
-def predict(examples_X, examples_y, queries_X, k, attWt): 
-    
-    w_examples_X = examples_X * attWt
-    w_queries_X = queries_X * attWt
-    
+def predict(examples_X, examples_y, queries_X, k): 
+        
     # For each query, run a knn classifier
-    predicted_y = [knn_classify_point(w_examples_X, examples_y, query, k, attWt) for query in w_queries_X]
+    predicted_y = [knn_classify_point(examples_X, examples_y, query, k) for query in queries_X]
 
     return np.array(predicted_y,dtype=np.int)[:,np.newaxis]
 
-def knn_classify_point(examples_X, examples_y, query, k, attWt):
+def knn_classify_point(examples_X, examples_y, query, k):
     
     # get the value of examples_y on the indices returned from get_nearest_neighbors
     nn = examples_y[get_nearest_neighbors(examples_X, query, k)]
@@ -67,7 +64,7 @@ def knn_classify_point(examples_X, examples_y, query, k, attWt):
     ret = int(round(np.average(nn)))
     return ret
 
-def cross_validation(train_X, train_y, num_folds, k, attWt):
+def cross_validation(train_X, train_y, num_folds, k):
     
     # the number of rows in each segment
     seg = int(round(len(train_y)//num_folds))
@@ -82,7 +79,7 @@ def cross_validation(train_X, train_y, num_folds, k, attWt):
         results_pred = predict(
             np.concatenate((train_X[0:seg_start],train_X[seg_end:len(train_X)]), axis=0), 
             np.concatenate((train_y[0:seg_start],train_y[seg_end:len(train_y)]), axis=0), 
-            train_X[seg_start:(i+1)*seg_end], k, attWt)
+            train_X[seg_start:(i+1)*seg_end], k)
         results_true = train_y[seg_start:(i+1)*seg_end]
         accuracy_results[i] = compute_accuracy(results_true, results_pred)
         # print(str(i+1)+"/"+str(num_folds))   
@@ -95,9 +92,9 @@ def compute_accuracy(true_y, predicted_y):
     return accuracy
 
 def load_data():
-    traindata = np.genfromtxt('train_small.csv', delimiter=',')[1:, 1:]
+    # traindata = np.genfromtxt('train_small.csv', delimiter=',')[1:, 1:]
     # traindata = np.genfromtxt('train_med.csv', delimiter=',')[1:, 1:]
-    # traindata = np.genfromtxt('train.csv', delimiter=',')[1:, 1:]
+    traindata = np.genfromtxt('train.csv', delimiter=',')[1:, 1:]
     # traindata = np.genfromtxt('train.csv', delimiter=',')[1:, :] #include IDs
     train_X = traindata[:, :-1]
     train_y = traindata[:, -1]
@@ -167,17 +164,17 @@ def assert_compute_accuracy():
     
     return
 
-def search_k(train_X, train_y, attWt, folds, k_values):
+def search_k(train_X, train_y, folds, k_values):
     
     print("performing " + str(folds) + "-fold cross validation")
     for k in k_values:
         t0 = time.time()
 
 
-        acc = predict(train_X, train_y, train_X, k, attWt)
+        acc = predict(train_X, train_y, train_X, k)
         train_acc = compute_accuracy(train_y, acc)
             
-        val_acc, val_acc_var = cross_validation(train_X, train_y, folds, k, attWt)
+        val_acc, val_acc_var = cross_validation(train_X, train_y, folds, k)
         
         t1 = time.time()
         print("k = {:5d} -- train acc = {:.2f}%  val acc = {:.2f}% ({:.4f})\t\t[exe_time = {:.2f}]".format(k, train_acc*100, val_acc*100, val_acc_var*100, t1-t0))
