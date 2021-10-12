@@ -24,10 +24,18 @@ def main():
     # declare an array to hold attribute weight - vector the same width as data
     # 1 = normal weight, 0.5 = half, 2.0 = double etc
     attWt = np.ones(test_X.shape[1], dtype=float) 
-    
+    attWt = [1, 1, 20000, 1000, 0.00005, 1, 1, 1, 1, 1, 1, 1, 1, 0.001, 0.001, 0.001, 0.1, 1, 1, 1, 2, 1, 1, 10, 1, 1, 200, 0.001, 1, 1, 1, 1, 1, 1, 1, 1, 2, 0.5, 2, 0.001, 0.001, 0.0000001, 1, 0.5, 1, 2, 0.001, 10, 0.001, 10, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.001, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1, 0.005, 1, 0.001, 0.001, 1, 0.5, 1, 0.001, 1, 20, 0.001, 1, 1] 
+
     
     # ---------- search k ----------
-    # search_k(train_X, train_y, attWt, 4, [9])
+    search_distWt(train_X, train_y, attWt, 10, 9, [50,60,70,80,90])
+    # search_distWt(train_X, train_y, attWt, 10, 9, [1,2,3,4,5,6,7,8,9,10])
+    # search_distWt(train_X, train_y, attWt, 4, 9, [1,2,3,4,5,6,7,8,9,10])
+    # search_distWt(train_X, train_y, attWt, 10, 9, [1,2,3,4,5,6,7,8,9,10])
+    # search_distWt(train_X, train_y, attWt, 4, 99, [1,0.01,0.001,0.0001,0.00001,0.000001,0.0000001,0.00000001])
+    # search_distWt(train_X, train_y, attWt, 10, 99, [1,0.01,0.001,0.0001,0.00001,0.000001,0.0000001,0.00000001])
+    # search_distWt(train_X, train_y, attWt, 10, 9, [1,0.01,0.001,0.0001,0.00001,0.000001,0.0000001,0.00000001])
+    # search_k(train_X, train_y, attWt, 4, [9], 0.001)
     # /--------- search k ----------
     
     # -------- search weight --------
@@ -45,7 +53,7 @@ def main():
     #     for a in range(len(attWt)):
             
     #         while rand in usedWeights:
-    #            rand = random.randrange(0,len(attWt))
+    #            rand = random.randrange(0,len(attWt)),  
                
     #         usedWeights.append(rand)
             
@@ -66,6 +74,7 @@ def main():
     # -------- set hyper paramters --------
 
     best_k = 9
+    best_distWt = 0.001
     
     # avg of 5 tie values
     # best_attWt = [10, 0.5, 5, 10, 0.1, 1, 1, 1, 1, 1, 2, 1, 0.1, 2, 0.3, 5, 0.1, 0.1, 0.3, 1, 5, 2, 7.5, 7.5, 2, 1, 2, 1.05, 1, 0.5, 1, 1, 7.5, 0.1, 0.1, 0.1, 5, 7.5, 0.4, 0.5, 0.1, 0.1, 0.3, 0.1, 2, 7.5, 1, 7.5, 0.5, 5, 0.3, 0.3, 0.3, 5, 0.1, 7.5, 5, 0.3, 5, 1, 1, 5, 0.5, 0.3, 2, 0.5, 2, 1, 0.5, 1, 7.5, 0.3, 0.3, 0.3, 2, 2, 1, 5, 2, 5, 0.3, 2, 0.2, 0.3, 0.1]
@@ -91,11 +100,14 @@ def main():
     # results from mult [0:4]	 86.51% (0.0067)
     # best_attWt = [10, 3, 1000000, 0.000006, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
+
     # results from mult [4:0]	 87.15% (0.0037)	
     # best_attWt = [1, 1, 30000, 50000, 0.0009, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
+    # best_attWt = [1, 1, 30000, 50000, 0.0009, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
     # results from mult rand	 87.65% (0.0012)	
-    best_attWt = [1,1,20000,1000,0.00005,1,1,1,1,1,1,1,1,0.001,0.001,0.001,0.1,1,1,1,2,1,1,10,1,1,200,0.001,1,1,1,1,1,1,1,1,2,0.5,2,0.001,0.001,0.0000001,1,0.5,1,2,0.001,10,0.001,10,1,1,1,1,1,1,1,1,1,1,1,0.001,1,1,2,1,1,1,2,2,1,1,0.005,1,0.001,0.001,1,0.5,1,0.001,1,20,0.001,1,1]
+    best_attWt = [1, 1, 20000, 1000, 0.00005, 1, 1, 1, 1, 1, 1, 1, 1, 0.001, 0.001, 0.001, 0.1, 1, 1, 1, 2, 1, 1, 10, 1, 1, 200, 0.001, 1, 1, 1, 1, 1, 1, 1, 1, 2, 0.5, 2, 0.001, 0.001, 0.0000001, 1, 0.5, 1, 2, 0.001, 10, 0.001, 10, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.001, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1, 0.005, 1, 0.001, 0.001, 1, 0.5, 1, 0.001, 1, 20, 0.001, 1, 1] 
 
     # /------- set hyper paramters --------
     
@@ -103,19 +115,19 @@ def main():
     # ------- generate prediction -------
     
     # Make predictions on test set
-    pred_test_y = predict(train_X, train_y, test_X, best_k, best_attWt)    
+    # pred_test_y = predict(train_X, train_y, test_X, best_k, best_attWt, best_distWt)    
     
-    # add index and header then save to file
-    test_out = np.concatenate((np.expand_dims(np.array(range(2000),dtype=np.int), axis=1), pred_test_y), axis=1)
-    header = np.array([["id", "income"]])
-    test_out = np.concatenate((header, test_out))
-    np.savetxt('test_predicted.csv', test_out, fmt='%s', delimiter=',')
+    # ## add index and header then save to file
+    # test_out = np.concatenate((np.expand_dims(np.array(range(2000),dtype=np.int), axis=1), pred_test_y), axis=1)
+    # header = np.array([["id", "income"]])
+    # test_out = np.concatenate((header, test_out))
+    # np.savetxt('test_predicted.csv', test_out, fmt='%s', delimiter=',')
+    # print('Written to file!')
     # /------ generate prediction -------
    
     return
     
 def get_nearest_neighbors(example_set, query, k):      
-    
     
     #calculate norm for example set - query, axis for broadcasting
     dist = np.linalg.norm(example_set-query, axis=1)
@@ -129,15 +141,54 @@ def get_nearest_neighbors(example_set, query, k):
     ret = np.sort(np.argpartition(dist, k)[:k])
     return ret
 
-def predict(examples_X, examples_y, queries_X, k, attWt): 
+def predict(examples_X, examples_y, queries_X, k, attWt,distWt): 
     
     w_examples_X = examples_X * attWt
     w_queries_X = queries_X * attWt
     
     # For each query, run a knn classifier
-    predicted_y = [knn_classify_point(w_examples_X, examples_y, query, k) for query in w_queries_X]
+    predicted_y = [knn_classify_point_distributionWeight(w_examples_X, examples_y, query, k, distWt) for query in w_queries_X]
 
     return np.array(predicted_y,dtype=np.int)[:,np.newaxis]
+
+def knn_classify_point_distributionWeight(examples_X, examples_y, query, k, distWt):
+    
+    # get the value of examples_y on the indices returned from get_nearest_neighbors
+    nn = get_nearest_neighbors(examples_X, query, k)
+    
+    nnLabels = examples_y[nn]
+    nnLabels_adjusted = []
+    
+    for n in nn:
+        label = examples_y[n][0]*2-1 #convert to [1,-1] for math
+        dist = (np.linalg.norm(examples_X[n]-query) + 1)**distWt #get distance + small amount to prevent 0s
+        nnLabels_adjusted.append(label/dist)
+        
+    #get average of k nearest neighbors, round to nearest int (0 or 1)
+    ret = int((np.average(nnLabels_adjusted)) > 0)
+    return ret
+
+
+def knn_classify_point_distributionWeight2(examples_X, examples_y, query, k, distWt):
+    
+    # get the value of examples_y on the indices returned from get_nearest_neighbors
+    nn = get_nearest_neighbors(examples_X, query, k)
+    
+    nnLabels = examples_y[nn]
+    labels = []
+    dists = []
+    adjusted = np.zeros(len(nn))
+    
+    for n in nn:
+        labels.append(examples_y[n][0]*2-1) #convert to [1,-1] for math
+        dists.append(np.linalg.norm(examples_X[n]-query) + 0.00001)
+        
+    for d in range(len(dists)):
+        adjusted[d] = (sum(dists)*distWt/dists[d])*labels[d]
+        
+    #get average of k nearest neighbors, round to nearest int (0 or 1)
+    ret = int((np.average(adjusted)) > 0)
+    return ret
 
 def knn_classify_point(examples_X, examples_y, query, k):
     
@@ -148,7 +199,7 @@ def knn_classify_point(examples_X, examples_y, query, k):
     ret = int(round(np.average(nn)))
     return ret
 
-def cross_validation(train_X, train_y, num_folds, k, attWt):
+def cross_validation(train_X, train_y, num_folds, k, attWt, distWt):
     
     i = 0
     
@@ -162,7 +213,7 @@ def cross_validation(train_X, train_y, num_folds, k, attWt):
         results_pred = predict(
             np.concatenate((train_X[0:seg_start],train_X[seg_end:len(train_X)]), axis=0), 
             np.concatenate((train_y[0:seg_start],train_y[seg_end:len(train_y)]), axis=0), 
-            train_X[seg_start:(i+1)*seg_end], k, attWt)
+            train_X[seg_start:(i+1)*seg_end], k, attWt, distWt)
         results_true = train_y[seg_start:(i+1)*seg_end]
         accuracy_results[i] = compute_accuracy(results_true, results_pred)
             
@@ -245,17 +296,17 @@ def assert_compute_accuracy():
     
     return
 
-def search_k(train_X, train_y, attWt, folds, k_values):
+def search_k(train_X, train_y, attWt, folds, k_values, distWt):
     
     print("performing " + str(folds) + "-fold cross validation")
     for k in k_values:
         t0 = time.time()
 
 
-        acc = predict(train_X, train_y, train_X, k, attWt)
+        acc = predict(train_X, train_y, train_X, k, attWt, distWt)
         train_acc = compute_accuracy(train_y, acc)
             
-        val_acc, val_acc_var = cross_validation(train_X, train_y, folds, k, attWt)
+        val_acc, val_acc_var = cross_validation(train_X, train_y, folds, k, attWt, distWt)
         
         t1 = time.time()
         print("k = {:5d} -- train acc = {:.2f}%  val acc = {:.2f}% ({:.4f})\t\t[exe_time = {:.2f}]".format(k, train_acc*100, val_acc*100, val_acc_var*100, t1-t0))
@@ -271,10 +322,10 @@ def search_weight(train_X, train_y, attWt, folds, k, attIndex, att_values, weigh
         
         attWt[attIndex] = a
 
-        acc = predict(train_X, train_y, train_X, k, attWt)
+        acc = predict(train_X, train_y, train_X, k, attWt, distWt)
         train_acc = compute_accuracy(train_y, acc)
             
-        val_acc, val_acc_var = cross_validation(train_X, train_y, folds, k, attWt)
+        val_acc, val_acc_var = cross_validation(train_X, train_y, folds, k, attWt, distWt)
         
         t1 = time.time()
         print("wt value = {:2f} -- train acc = {:.2f}%  val acc = {:.2f}% ({:.4f})\t\t[exe_time = {:.2f}]".format(a, train_acc*100, val_acc*100, val_acc_var*100, t1-t0))
@@ -283,6 +334,23 @@ def search_weight(train_X, train_y, attWt, folds, k, attIndex, att_values, weigh
         attWt[attIndex] = 1
         
     return 
+
+def search_distWt(train_X, train_y, attWt, folds, k, distWts):
+    
+    print("performing " + str(folds) + "-fold cross validation")
+    for distWt in distWts:
+        t0 = time.time()
+
+
+        acc = 0 #predict(train_X, train_y, train_X, k, attWt, distWt)
+        train_acc = 0 # compute_accuracy(train_y, acc)
+            
+        val_acc, val_acc_var = cross_validation(train_X, train_y, folds, k, attWt, distWt)
+        
+        t1 = time.time()
+        print("distWt = {:2f} -- train acc = {:.2f}%  val acc = {:.2f}% ({:.4f})\t\t[exe_time = {:.2f}]".format(distWt, train_acc*100, val_acc*100, val_acc_var*100, t1-t0))
+    
+    return
 
 def search_weight_mult(train_X, train_y, attWt, folds, k, attIndex, att_values, weightResults):
     
@@ -301,7 +369,7 @@ def search_weight_mult(train_X, train_y, attWt, folds, k, attIndex, att_values, 
         acc = predict(train_X, train_y, train_X, k, attWt)
         train_acc = compute_accuracy(train_y, acc)
             
-        val_acc, val_acc_var = cross_validation(train_X, train_y, folds, k, attWt)
+        val_acc, val_acc_var = cross_validation(train_X, train_y, folds, k, attWt, distWt)
         
         t1 = time.time()
         print("wt value = {:2f} -- train acc = {:.2f}%  val acc = {:.2f}% ({:.4f})\t\t[exe_time = {:.2f}]".format(a, train_acc*100, val_acc*100, val_acc_var*100, t1-t0))
