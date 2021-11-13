@@ -1,0 +1,489 @@
+import numpy as np
+
+from datetime import datetime
+
+import matplotlib.pyplot as plt
+import matplotlib
+font = {'weight' : 'normal',
+        'size'   : 22}
+matplotlib.rc('font', **font)
+
+
+# GLOBAL PARAMETERS FOR STOCHASTIC GRADIENT DESCENT
+np.random.seed(104)
+step_size = .01
+batch_size = 300
+max_epochs = 9999 # run until train acc = 100
+# GLOBAL PARAMETERS FOR NETWORK ARCHITECTURE
+number_of_layers = 8 # best:4
+width_of_layers = 32  # best:32
+activation = "ReLU" if True else "Sigmoid" 
+# OPTIMIZATION
+max_clips = 0
+
+trainPrintMod = 100 # only print this%number of epoch debug lines
+
+logEachStep = False
+logEachNode = False
+
+def main():
+    
+  # ---------------------------------------------------------------------------
+  
+    # Load Data
+  X_train, Y_train, X_val, Y_val, X_test = loadData()
+  
+    # Clip Data
+  clip(X_train)
+  clip(X_val)
+  clip(X_test)
+
+ train_width_numer_of_layers([1,2,3])
+
+    # Run
+  neuralNetwork, acc = trainNeuralNetwork(X_train, Y_train, X_val, Y_val)
+
+    # Submit
+  predictions = getPredictions(neuralNetwork, X_test)
+  generateSubmissionFile(predictions, 'test_predicted ' + str(round(acc,2)))
+  
+  # ---------------------------------------------------------------------------
+  
+def train_width_numer_of_layers(X_train, Y_train, X_val, Y_val, train_values):
+    best_acc = 0
+    best_nn = []
+    for i in train_values:
+        number_of_layers = i
+        neuralNetwork, acc = trainNeuralNetwork(X_train, Y_train, X_val, Y_val)
+        if (acc > best_acc):
+            best_nn = neuralNetwork
+            best_acc = acc
+            printDiv(1)
+            print("Found new best numer_of_layers: " + number_of_layers)
+            printDiv(1)
+    
+    return best_nn, best_acc
+
+def printDiv(type=1):
+    if type==1:
+        print("--------------------------------------------------------------")
+    if type==2:
+        print("==============================================================")
+    return
+    
+
+def clip(data):
+    
+    IMAGE_SIZE_width = 28 
+    IMAGE_SIZE_height = 28
+    c = 0
+    while c < max_clips:
+        X_train, width, height = clipTopBottomImageData(data, IMAGE_SIZE_width, IMAGE_SIZE_height)
+        c = c + 1
+    return
+  
+def clipLeftRightImageData(data, width, height):
+    
+    
+    
+    width = width - 1
+    return width, height
+
+def clipTopBottomImageData(data, width, height):
+    
+    imageLength = width*height
+    imageNumber = 0
+    
+    new_data = np.ones((data.shape[0],data.shape[1]-(width)), dtype=float)
+    while imageNumber < len(data):
+        
+        # m_top =data[imageNumber, 0:width]
+        # m_bottom = data[imageNumber, imageLength-width:imageLength]
+        
+        avg_top = np.mean(data[imageNumber, 0:width]) #how many pixels are on the top row?
+        avg_bottom = np.mean(data[imageNumber, imageLength-width:imageLength]) #how many are on the bottom?
+        
+      
+        if avg_top == -0.5: # if top row has no pixels
+            new_data[imageNumber] = data[imageNumber, width:imageLength]  #clip top
+        elif avg_bottom == -0.5: # if bottom row has no pixels
+            new_data[imageNumber] = data[imageNumber, 0:imageLength-width] #clip bottom
+
+        imageNumber = imageNumber+1
+    
+    height = height - 1
+    return new_data, width, height
+
+  
+  
+def trainNeuralNetwork(X_train, Y_train, X_val, Y_val):
+    
+    # for i in range(10):
+    #    displayExample(X_train[i])
+    
+    # Build a network with input feature dimensions, output feature dimension,
+    # hidden dimension, and number of layers as specified below
+    net = FeedForwardNeuralNetwork(X_train.shape[1], 10, width_of_layers, number_of_layers, activation=activation)
+
+    # Some lists for book-keeping for plotting later
+    losses = []
+    val_losses = []
+    accs = []
+    val_accs = []
+
+    best_net = net
+    best_net_acc = 0
+    
+    # Loss function
+    lossFunc = CrossEntropySoftmax()
+
+    # Indicies we will use to shuffle data randomly
+    inds = np.arange(len(X_train))
+    for i in range(max_epochs):
+      
+      # Shuffled indicies so we go through data in new random batches
+      np.random.shuffle(inds)
+
+      # Go through all datapoints once (aka an epoch)
+      j = 0
+      acc_running = loss_running = 0
+      while j < len(X_train):
+
+        # Select the members of this random batch
+        b = min(batch_size, len(X_train)-j)
+        X_batch = X_train[inds[j:j+b]]
+        Y_batch = Y_train[inds[j:j+b]].astype(np.int)
+      
+        # Compute the scores for our 10 classes using our model
+        logits = net.forward(X_batch)
+        loss = lossFunc.forward(logits, Y_batch)
+        predictions = np.argmax(logits,axis=1)[:,np.newaxis]
+        acc = np.mean( predictions == Y_batch)
+        
+        # Compute gradient of Cross-Entropy Loss with respect to logits
+        loss_grad = lossFunc.backward()
+
+        # Pass gradient back through networks
+        net.backward(loss_grad)
+
+        # Take a step of gradient descent
+        net.step(step_size)
+
+        #Record losses and accuracy then move to next batch
+        losses.append(loss)
+        accs.append(acc)
+        loss_running += loss*b
+        acc_running += acc*b
+
+        j+=batch_size
+
+      # Evaluate performance on validation. This function looks very similar to the training loop above, 
+      val_loss, val_acc, val_loss_running, val_acc_running = evaluateValidation(net, X_val, Y_val, batch_size)
+      val_losses.append(val_loss)
+      val_accs.append(val_acc)
+      
+      trainAcc = acc_running / len(X_train)*100
+      
+      loss = loss_running/len(X_train)
+      
+      # keep track of the epoch with the greatest accuracy
+      if (val_acc > best_net_acc || i%trainPrintMod == 0):
+          best_net = net
+          best_net_acc = val_acc
+          
+      # print a line for each of the following conditions: 
+          # new best val acc epoch
+          # mod from global variable
+          # final selected epoch
+          
+          print("[Epoch {:3}]   Loss:  {:8.4}     Train Acc:  {:8.4}%      Val Acc:  {:8.4}%".format(i, loss, trainAcc, val_acc*100))
+      if trainAcc == 100:
+          print("[Epoch {:3}]   Loss:  {:8.4}     Train Acc:  {:8.4}%      Val Acc:  {:8.4}%".format(i, loss, trainAcc, val_acc*100))
+          break
+      
+    
+    graphResults(X_train, batch_size, val_losses, val_accs, losses, accs)
+    return best_net, best_net_acc*100
+  
+def graphResults(X_train, batch_size, val_losses, val_accs, losses, accs):
+    
+    fig, ax1 = plt.subplots(figsize=(16,9))
+    color = 'tab:red'
+    ax1.plot(range(len(losses)), losses, c=color, alpha=0.25, label="Train Loss")
+    ax1.plot([np.ceil((i+1)*len(X_train)/batch_size) for i in range(len(val_losses))], val_losses,c="red", label="Val. Loss")
+    ax1.set_xlabel("Iterations")
+    ax1.set_ylabel("Avg. Cross-Entropy Loss", c=color)
+    ax1.tick_params(axis='y', labelcolor=color)
+    ax1.set_ylim(-0.01,3)
+
+    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+
+    color = 'tab:blue'
+    ax2.plot(range(len(losses)), accs, c=color, label="Train Acc.", alpha=0.25)
+    ax2.plot([np.ceil((i+1)*len(X_train)/batch_size) for i in range(len(val_accs))], val_accs,c="blue", label="Val. Acc.")
+    ax2.set_ylabel(" Accuracy", c=color)
+    ax2.tick_params(axis='y', labelcolor=color)
+    ax2.set_ylim(-0.01,1.01)
+
+    fig.tight_layout()  # otherwise the right y-label is slightly clipped
+    ax1.legend(loc="center")
+    ax2.legend(loc="center right")
+    plt.show()
+    
+    return
+
+
+class LinearLayer:
+
+  # Initialize our layer with (input_dim, output_dim) weight matrix and a (1,output_dim) bias vector
+  def __init__(self, input_dim, output_dim):
+    self.weights = np.random.randn(input_dim, output_dim)* np.sqrt(2. / input_dim)
+    self.bias = np.ones( (1,output_dim) )*0.5
+
+  # During the forward pass, we simply compute Xw+b
+  def forward(self, input):
+    if logEachNode == True:
+        print("[LinearLayer forward]")
+    self.input = input #Storing X
+    ret = self.input @ self.weights + self.bias
+    return ret
+
+  #################################################
+  # Q3 Implementing Backward Pass for Linear
+  #################################################
+  def backward(self, grad):
+    if logEachNode == True:
+        print("[LinearLayer backward]")
+    self.grad_weights = self.input.T @ grad
+    self.grad_bias = grad.sum()
+    ret = grad @ self.weights.T
+    return ret
+    
+  def step(self, step_size):
+    if logEachNode == True:
+        print("[LinearLayer step]")
+    self.weights -= step_size*self.grad_weights
+    self.bias -= step_size*self.grad_bias
+
+
+###############################################
+# Instructor code below. Worth understanding
+# but don't need to modify for base assignment
+###############################################
+
+
+
+class FeedForwardNeuralNetwork:
+
+  def __init__(self, input_dim, output_dim, width_of_layers, number_of_layers, activation="ReLU"):
+
+    if number_of_layers == 1:
+      self.layers = [LinearLayer(input_dim, output_dim)]
+    else:
+      self.layers = [LinearLayer(input_dim, width_of_layers)]
+      self.layers.append(Sigmoid() if activation=="Sigmoid" else ReLU())
+      for i in range(number_of_layers-2):
+        self.layers.append(LinearLayer(width_of_layers, width_of_layers))
+        self.layers.append(Sigmoid() if activation=="Sigmoid" else ReLU())
+      self.layers.append(LinearLayer(width_of_layers, output_dim))
+
+  def forward(self, X):
+    if logEachNode == True:
+        print("[FeedForwardNeuralNetwork forward]")
+    for layer in self.layers:
+      if logEachStep == True:
+          print(X.shape)
+          print(X[0])
+      X = layer.forward(X)
+    if logEachStep == True:
+        print(X.shape)
+        print(X[0])
+    return X
+
+  def backward(self, grad):
+    if logEachNode == True:
+        print("[FeedForwardNeuralNetwork backward]")
+    for layer in reversed(self.layers):
+       if logEachStep == True:
+           print(grad.shape)
+           print(grad[0])
+       grad = layer.backward(grad)
+    if logEachStep == True:
+        print(grad.shape)
+        print(grad[0])
+
+  def step(self, step_size=0.001):
+    if logEachNode == True:
+        print("[FeedForwardNeuralNetwork step]")
+    for layer in self.layers:
+      layer.step(step_size)
+
+
+
+
+
+# Sigmoid or Logistic Activation Function
+class Sigmoid:
+
+  # Given the input, apply the sigmoid function
+  # store the output value for use in the backwards pass
+  def forward(self, input):
+    if logEachNode == True:
+        print("[Sigmoid forward]")
+    self.act = 1/(1+np.exp(-input))
+    return self.act
+  
+  # Compute the gradient of the output with respect to the input
+  # self.act*(1-self.act) and then multiply by the loss gradient with 
+  # respect to the output to produce the loss gradient with respect to the input
+  def backward(self, grad):
+      if logEachNode == True:
+          print("[Sigmoid backward]")
+      ret = grad * self.act * (1-self.act)
+      return ret
+
+  # The Sigmoid has no parameters so nothing to do during a gradient descent step
+  def step(self,step_size):
+    return
+
+# Rectified Linear Unit Activation Function
+class ReLU:
+
+  # Forward pass is max(0,input)
+  def forward(self, input):
+    if logEachNode == True:
+        print("[ReLU forward]")
+    self.mask = (input > 0)
+    ret = input * self.mask
+    return ret
+  
+  # Backward pass masks out same elements
+  def backward(self, grad):
+    if logEachNode == True:
+        print("[ReLU backward]")
+    ret = grad * self.mask
+    return ret
+
+  # No parameters so nothing to do during a gradient descent step
+  def step(self,step_size):
+    if logEachNode == True:
+        print("[ReLU step]")
+    return
+
+
+
+#####################################################
+# Utility Functions for Computing Loss / Val Metrics
+#####################################################
+def softmax(x):
+  x -= np.max(x,axis=1)[:,np.newaxis]  # Numerical stability trick
+  ret = np.exp(x) / (np.sum(np.exp(x),axis=1)[:,np.newaxis])
+  return ret
+
+
+class CrossEntropySoftmax:
+
+  def forward(self, logits, labels):
+    if logEachNode == True:
+        print("[softmax forward]")
+    self.probs = softmax(logits)
+    self.labels = labels
+    ret = -np.mean(np.log(self.probs[np.arange(len(self.probs))[:,np.newaxis],labels]+0.00001))
+    return ret
+
+  def backward(self):
+    if logEachNode == True:
+        print("[softmax backward]")
+    grad = self.probs
+    grad[np.arange(len(self.probs))[:,np.newaxis],self.labels] -= 1
+    ret = grad.astype(np.float64)/len(self.probs)
+    return ret
+
+def getPredictions(model, X_val):
+      logits = model.forward(X_val)
+      predictions = np.argmax(logits,axis=1)[:,np.newaxis]
+      return predictions
+  
+# def evaluatePredictions(model, X_val, Y_val):
+    
+
+def evaluateValidation(model, X_val, Y_val, batch_size):
+  val_loss_running = []
+  val_acc_running = []
+  j=0
+
+  lossFunc = CrossEntropySoftmax()
+
+  while j < len(X_val):
+    b = min(batch_size, len(X_val)-j)
+    X_batch = X_val[j:j+b]
+    Y_batch = Y_val[j:j+b].astype(np.int)
+   
+    logits = model.forward(X_batch)
+    loss = lossFunc.forward(logits, Y_batch)
+    predictions = np.argmax(logits,axis=1)[:,np.newaxis]
+    acc = np.mean( predictions == Y_batch)
+
+    val_loss_running.append(loss)
+    val_acc_running.append(acc)
+       
+    j+=batch_size
+
+  val_loss = np.mean(val_loss_running)
+  val_acc =  np.mean(val_acc_running)
+  return val_loss, val_acc, val_loss_running, val_acc_running
+
+
+
+def generateSubmissionFile(predictions, name = 'test_predicted'):
+    filename = name + ' ' + str(datetime.now().strftime("%d-%b-%Y %H %M %S")) + '.csv'
+    test_out = np.concatenate((np.expand_dims(np.array(range(len(predictions)),dtype=np.int), axis=1), predictions), axis=1)
+    header = np.array([["id", "digit"]])
+    test_out = np.concatenate((header, test_out))
+    np.savetxt(filename, test_out, fmt='%s', delimiter=',')
+    print('Written to file: ' + filename)
+    return
+
+
+
+#####################################################
+# Utility Functions for Loading and Displaying Data
+#####################################################
+def loadData(normalize = True):
+  print("Loading data 1/3")
+  train = np.loadtxt("mnist_small_train.csv", delimiter=",", dtype=np.float64)
+  # train = np.loadtxt("mnist_small_train_justindexes.csv", delimiter=",", dtype=np.float64)
+  print("Loading data 2/3")
+  val = np.loadtxt("mnist_small_val.csv", delimiter=",", dtype=np.float64)
+  # val = np.loadtxt("mnist_small_val_tworow.csv", delimiter=",", dtype=np.float64)
+  print("Loading data 3/3")
+  test = np.loadtxt("mnist_small_test.csv", delimiter=",", dtype=np.float64)
+  # test = np.loadtxt("mnist_small_test_tworow.csv", delimiter=",", dtype=np.float64)
+
+  # Normalize Our Data
+  if normalize:
+    X_train = train[:,:-1]/256-0.5
+    X_val = val[:,:-1]/256-0.5
+    X_test = test/256-0.5
+  else:
+    X_train = train[:,:-1]
+    X_val = val[:,:-1]
+    X_test = test
+
+  Y_train = train[:,-1].astype(np.int)[:,np.newaxis]
+  Y_val = val[:,-1].astype(np.int)[:,np.newaxis]
+
+  print("Loaded train: " + str(X_train.shape))
+  print("Loaded val: " + str(X_val.shape))
+  print("Loaded test: "+ str(X_test.shape)) 
+
+  return X_train, Y_train, X_val, Y_val, X_test
+
+
+def displayExample(x):
+  plt.imshow(x.reshape(28,28),cmap="gray")
+  plt.show()
+
+
+if __name__=="__main__":
+  main()
