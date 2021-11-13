@@ -1,0 +1,694 @@
+from __future__ import print_function
+import numpy as np
+import timeit
+np.random.seed(42)
+import matplotlib.pyplot as plt
+import logging
+import random
+import builtins as __builtin__
+
+from datetime import datetime
+
+log = open("log.txt", "a") # write debug to log file on disk - see print(*args) below
+
+# GLOBAL PARAMETERS FOR STOCHASTIC GRADIENT DESCENT
+step_size=0.00001
+max_iters=10000
+min_movement = 0.000001
+
+logisticVectorResults = 0
+intenseLogging = False
+
+best_bias = 1
+best_offset = 0
+best_dummy_value = 1.0
+best_weight = []
+best_k = 3
+
+float_formatter = "{:.3f}".format
+np.set_printoptions(formatter={'float_kind':float_formatter})
+
+starttime = timeit.default_timer()
+
+def main():
+    # ----- Load Data
+    X_train, y_train, X_test = loadData()
+    
+    runName = "cross wts"
+    
+    # -- apply best weights
+    # best_weight = np.array([-1.013, -1.013, -1.013, -1.013, -1.013, -1.013, -1.013, -1.013, 0.458, 0.106, 0.387, 0.490, -0.003, 0.386, 0.245, 0.268])[:, np.newaxis]
+    # X_train = X_train * best_weight
+    # w, losses = train(X_train, y_train, "base")
+    
+    plotDatas = []
+    plotLabels = []
+    offset_res_sets = []
+    offset_labels_sets = []
+    logbias_res_sets = []
+    logbias_labels_sets = []
+    cv_acc_sets = []
+    cv_acc_all_sets = []
+    cv_std_sets = []
+    cnt = []
+    
+    
+    
+    # ----------------Plot NLL-step size---------------------------------------
+    # -------------------------------------------------------------------------
+    
+    # X_train_bias = X_train
+    # train_best_accuracy = 0
+    
+    # for s in [0.00001, 0.0001, 0.0003, 0.0005]:
+    #     title = "Step = " + str(s)
+    #     step_size = s
+      
+    #     w, losses = train(X_train_bias, y_train, title, s)
+        
+    #     plotDatas.append(losses)
+    #     plotLabels.append(title)
+        
+    # plotGraphNLL(plotDatas,plotLabels)
+
+    # ----------------/Plot NLL-step size--------------------------------------
+    # -------------------------------------------------------------------------
+    
+    
+    
+    
+    
+    
+    
+    
+
+      # ----------------Clip off Model Data------------------------------------
+      # -----------------------------------------------------------------------
+    
+    # w, losses = train(X_train, y_train, "Remove Data")
+    # pred = X_train@w
+    
+    # offset=np.average(X_train) + best_offset
+    # pred_comp = np.array(pred >= offset, dtype=int) 
+    
+    # for i in reversed(range(len(pred_comp))):
+        
+    #     if pred_comp[i] != y_train[i]:
+    #         X_train = np.delete(X_train, i, 0)
+    #         y_train = np.delete(y_train, i, 0)
+    #         print("Deleted row: " + str(i))
+    
+    
+
+      # ----------------/Clip off Model Data-----------------------------------
+      # -----------------------------------------------------------------------
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+      # -------------Train regularization -------------------
+      # ------------------------------------------------
+    # list of results
+    cnt = 0;
+    ret = 1
+
+    trainWt = False
+    attWt = np.ones(X_train.shape[1], dtype=float) 
+    # attWt = [2.000, 1.000, 0.025, 0.100, 10.000, 0.005, 0.001, 2.000]
+    # attWt =[0.200, 2.000, 0.010, 1.000, 0.500, 0.500, 0.001, 2.000]
+    
+    if (trainWt == True):
+        X_train = crossAugment(X_train)
+        while (ret == 1):
+            cnt = cnt + 1
+            weightresults = []
+            ret = 0
+            usedWeights = []
+            rand = random.randrange(0,len(attWt))
+            
+            print("(((((((((((-------------------------------------------------------)))))))))")
+            print("New Iteration - " + str(cnt))
+            print("(((((((((((-------------------------------------------------------)))))))))")
+            
+            for a in range(len(attWt)):
+                print("Current attWt: " + str(attWt))
+                while rand in usedWeights:
+                    rand = random.randrange(0,len(attWt))
+                   
+                usedWeights.append(rand)
+                
+                res, attWt = search_weight_mult(X_train, y_train, attWt, best_k, best_k, rand, [1, 0.1, 2], weightresults)
+                if res == 1:
+                    ret = 1
+            
+            weightresults.sort()
+            
+            # save weight results to file for easier analysis
+            weight_header = np.array([["attribute index", "attribute weight value", "accuracy", "variance"]])
+            test_out = np.concatenate((weight_header, weightresults))
+            np.savetxt('weight_search_' + str(cnt) + '.csv', test_out, fmt='%s', delimiter=',')
+    
+    
+      # -------------/Train regularization--------------
+      # ------------------------------------------------
+      
+      
+      
+      
+      
+      
+      
+    
+    #   # ----------------Train Bias----------------------
+    #   # ------------------------------------------------
+      
+
+    # w, losses = train(X_train, y_train, "Base")
+    # cv_acc, cv_std, acc_all = kFoldCrossVal(X_train, y_train, best_k)
+    # plotDatas.append(losses)
+    # plotLabels.append("Base")
+    # cv_acc_sets.append(cv_acc)
+    # cv_acc_all_sets.append(acc_all)
+    # cv_std_sets.append(cv_std)
+    # cnt.append(0)
+    
+    # X_train_bias = X_train
+    # train_best_accuracy = 0
+    
+    # for b in range(1):
+        
+    #     X_train_bias = crossAugment(X_train_bias)
+        
+    #     title = "Bias = " + str(b+1)
+        
+    #     # offset_w, offset_losses, offset_res, offset_labels = train_search_offset(X_train_bias, y_train, title)
+    #     # offset_res_sets.append(offset_res)
+    #     # offset_labels_sets.append(offset_labels)
+      
+    #     # logbias_w, logbias_losses, logbias_res, logbias_labels = train_search_logbias(X_train_bias, y_train, title)
+    #     # logbias_res_sets.append(logbias_res)
+    #     # logbias_labels_sets.append(logbias_labels)
+        
+    #     w, losses = train(X_train_bias, y_train, title)
+    #     cv_acc, cv_std, acc_all = kFoldCrossVal(X_train_bias, y_train, best_k)
+        
+    
+    
+    #     if cv_acc > train_best_accuracy:
+    #         train_best_accuracy = cv_acc
+    #         best_bias = b+1
+    #         best_weight = w
+            
+        
+    # #     plotDatas.append(losses)
+    # #     plotLabels.append(title)
+    # #     cv_acc_sets.append(cv_acc)
+    # #     cv_acc_all_sets.append(acc_all)
+    # #     cv_std_sets.append(cv_std)
+    # #     cnt.append(b+1)
+        
+    
+    # plotGraphNLL(plotDatas,plotLabels)
+    # plotGraphGeneric([cv_acc_sets], [cnt], plotLabels, "bias", "accuracy", "Crossvalidation Accuracy on Bias w/min NLL")
+    # plotGraphGeneric([cv_std_sets], [cnt], plotLabels, "bias", "std", "Crossvalidation STD on Bias w/min NLL")
+    # # plotGraphGeneric(offset_res_sets, offset_labels_sets, plotLabels, "value", "accuracy", "Offset in Train Function w/min NLL")
+    # # plotGraphGeneric(offset_res_sets[1:], offset_labels_sets[1:], plotLabels[1:], "value", "accuracy", "Offset in Train Function w/min NLL")
+    # # plotGraphGeneric(logbias_res_sets, logbias_labels_sets, plotLabels, "value", "accuracy", "Offset in σ Bias constant w/min NLL")
+    # # plotGraphGeneric(logbias_res_sets[1:], logbias_labels_sets[1:], plotLabels[1:], "value", "accuracy", "Offset in σ Bias constant w/min NLL")
+    
+    # # ----------------/Train Bias---------------------
+    # # ------------------------------------------------
+    
+    
+    
+    
+    
+
+    
+
+    print("---------------------------------------------------------------------------")
+    print("---------------------------------------------------------------------------")
+    print("|||||Using best_bias: " + str(best_bias) + "|||||")
+    # print("|||||Using best_weight: " + str(best_weight.T) + "|||||")
+    print("|||||Using best_offset: " + str(best_offset) + "|||||")
+    print("|||||Using attWt: " + str(attWt) + "|||||")
+    print("---------------------------------------------------------------------------")
+    print("---------------------------------------------------------------------------")
+
+    
+    
+    
+    
+    
+    
+    
+    
+      # ----------------SUBMIT--------------------------
+      # ------------------------------------------------
+
+    # best_X_train = X_train
+    # X_test_bias = X_test
+    # for i in range(best_bias):
+    #     best_X_train = crossAugment(best_X_train)
+    #     X_test_bias = crossAugment(X_test_bias)
+    #     print("added bias")
+
+    # w, losses = train(X_train, y_train, "Submit No Bias")
+    # cv_acc, cv_std, acc_all = kFoldCrossVal(best_X_train, y_train, best_k)
+
+    # # w = best_weight
+    # y_pred_pub = X_test_bias@w
+    
+    # offset = best_offset
+    # y_pred_pub_train = np.array(y_pred_pub >= offset, dtype=int) 
+    # generateSubmissionFile(y_pred_pub_train, "No Bias")
+    
+    ## SUBMIT ----- No Bias
+    # w, losses = train(X_train*attWt, y_train, runName + " Submit No Bias")
+    # # cv_acc, cv_std, acc_all = kFoldCrossVal(X_train, y_train, best_k, True)
+    # y_pred_pub = X_test@w
+    # y_pred_pub_train = np.array(y_pred_pub >= best_offset, dtype=int) 
+    # generateSubmissionFile(y_pred_pub_train, runName + " No Bias")
+    
+    ## SUBMIT ----- With Dummy Bias Included
+    # w, losses = train(dummyAugment(X_train*attWt), y_train, runName + " Submit Dummy Bias")
+    # cv_acc, cv_std, acc_all = kFoldCrossVal(dummyAugment(X_train), y_train, best_k, True)
+    # y_pred_pub = dummyAugment(X_test)@w
+    # y_pred_pub_train = np.array(y_pred_pub >= best_offset, dtype=int) 
+    # generateSubmissionFile(y_pred_pub_train, runName + " Dummy Bias")
+    
+    ## SUBMIT ----- With Cross Bias Included
+    w, losses = train(crossAugment(X_train*attWt), y_train, runName + " Submit Cross Bias")
+    cv_acc, cv_std, acc_all = kFoldCrossVal(crossAugment(X_train)*attWt, y_train, best_k, True)
+    y_pred_pub = crossAugment(X_test)@w
+    y_pred_pub_train = np.array(y_pred_pub >= best_offset, dtype=int) 
+    generateSubmissionFile(y_pred_pub_train, runName + " Cross Bias")
+
+    #  # ----------------/SUBMIT-------------------------
+    #  # ------------------------------------------------
+
+    return
+
+def logistic(z): #https://photos.app.goo.gl/ZKW7vWYu5XSFKgjq7
+    try:
+        ret = (1/(1 + np.exp(-z)))  
+    except Warning:
+        pass
+    
+    if np.isnan(ret):
+        a = 1
+    if ret == 0:
+        ret = np.array([0.00001])
+    if ret == 1:
+        ret = np.array([0.99999])
+    return ret
+
+def calculateNegativeLogLikelihood(X,y,w): #https://photos.app.goo.gl/bV9mFJETJzPC3PcYA
+    nll = 0
+    res_arr = np.zeros((X.shape[0], X.shape[1]))
+    
+    for i in range(len(X)):
+        
+        if (logisticVectorResults == 1):
+            m = w.T*X[i]
+        else:
+            m = w.T@X[i]
+
+        σ = logistic(m)
+        ll = y[i]@np.log(σ) + (1-y[i])@np.log(1-σ)
+        res_arr[i] = ll
+        nll -= ll 
+        if np.isnan(ll):
+            a = np.log(1-σ)
+            a = np.log(σ)
+            a = 1
+        
+    # ret = nll / len(X)
+    ret = np.average(nll)
+    return ret
+
+def trainLogistic(X,y, max_iters=max_iters, step_size=step_size):
+
+    # Initialize our weights with zeros
+    w = np.zeros( (X.shape[1],1) )
+    
+    # w = best_weight
+    
+    # Keep track of losses for plotting
+    losses = [calculateNegativeLogLikelihood(X,y,w)]
+    # losses =  [115.0624319729511]
+    
+    w_grad_prev = np.zeros((X.shape[1], 1))
+    w_grad_modified = True
+    c = 0
+    
+    # Take up to max_iters steps of gradient descent
+    while w_grad_modified == True and c < max_iters:
+    
+        
+        w_grad = np.zeros((X.shape[1], 1))
+        
+    
+        for i in range(len(X)):    #https://photos.app.goo.gl/KdxW8srgJbJjEXn9A
+            
+            if (logisticVectorResults == 1):
+                m = w.T*X[i]
+            else:
+                m = w.T@X[i]
+            
+            σ = logistic(m)
+            try:
+                g = (σ-y[i])*X[i]
+            except:
+                a = 1
+            w_grad += g.reshape(X.shape[1],1)
+        
+        # print(w_grad.T)
+        # print(str(r) + ":" + str(w.T))
+    
+        a = w_grad.shape
+        b = (X.shape[1],1)
+        assert(w_grad.shape == (X.shape[1],1))
+
+        # Take the update step in gradient descent
+        w = w - step_size*w_grad
+        
+        # Calculate the negative log-likelihood with the 
+        # new weight vector and store it for plotting later
+        
+        ll = calculateNegativeLogLikelihood(X,y,w)
+        # print(ll)
+        losses.append(ll)
+        
+        diffArr = np.subtract(w_grad_prev, w_grad)
+        c = c + 1
+        
+        if intenseLogging == True:
+            print(str(c) + ": " + str(diffArr.T))
+        
+        
+        # print(str(c))
+        w_grad_modified = (np.absolute(np.sum(diffArr)) > min_movement)
+        # w_grad_modified = True
+        w_grad_prev = w_grad
+        
+    # print("Ran for " + str(c) + " Iterations.")
+    return w, losses
+
+def dummyAugment(X, val=1):
+    
+    augCol = np.ones([1,len(X)]).T * val
+    aug_X = np.block([augCol, X])
+    return aug_X
+
+def crossAugment(X):
+    aug_X = X
+    used = []
+    for i in range(X.shape[1]):
+        for j in range(X.shape[1]):
+            u = [i,j]
+            u.sort()
+            if u not in used:
+                used.append(u)
+                augCol = (X[:,i]*X[:,j])[:, np.newaxis]
+                aug_X = np.block([augCol, aug_X])
+    
+    augCol = np.ones([1,len(X)]).T
+    aug_X = np.block([augCol, aug_X])
+    return aug_X
+
+def kFoldCrossVal(X, y, k, verbose = False):
+  fold_size = int(np.ceil(len(X)/k))
+  
+  rand_inds = np.random.permutation(len(X))
+  X = X[rand_inds]
+  y = y[rand_inds]
+
+  acc = []
+  inds = np.arange(len(X))
+  print("---------------------------------------------------------------------------")
+  for j in range(k):
+    
+    start = min(len(X),fold_size*j)
+    end = min(len(X),fold_size*(j+1))
+    test_idx = np.arange(start, end)
+    train_idx = np.concatenate( [np.arange(0,start), np.arange(end, len(X))] )
+    if len(test_idx) < 2:
+      break
+
+    X_fold_test = X[test_idx]
+    y_fold_test = y[test_idx]
+    
+    X_fold_train = X[train_idx]
+    y_fold_train = y[train_idx]
+
+    w, losses = trainLogistic(X_fold_train, y_fold_train)
+
+    offset = best_offset
+    if (logisticVectorResults == 1):
+        offset=np.average(X_fold_test) + best_offset
+
+    avg = np.mean((X_fold_test@w >= offset) == y_fold_test)
+    acc.append(avg)
+
+    if verbose == True:
+        print("K" + str(k) + "Fold " + str(j+1) + "/" + str(k) + ": Accuracy - " + str(avg))
+
+  print("---------------------------------------------------------------------------")
+  print("K" + str(k) + "Fold Mean:  Accuracy - |" + str(np.mean(acc)) + "|   STD - " + str(np.std(acc)))
+  print("===========================================================================")
+  return np.mean(acc), np.std(acc), acc
+
+def loadData():
+    
+    train = np.loadtxt("train_cancer.csv", delimiter=",")
+    # train = np.loadtxt("train_cancer_clean2.csv", delimiter=",")
+    # train = np.loadtxt("train_cancer_small.csv", delimiter=",")
+    # train = np.loadtxt("train_cancer_two_rows.csv", delimiter=",")
+    test = np.loadtxt("test_cancer_pub.csv", delimiter=",")
+    
+    X_train = train[:, 0:-1]
+    y_train = train[:, -1]
+    X_test = test
+    
+    # X_train = np.delete(X_train, 6, 1)
+    # X_train = np.delete(X_train, 5, 1)
+    # X_train = np.delete(X_train, 4, 1)
+    # X_train = np.delete(X_train, 2, 1)
+    # X_train = np.delete(X_train, 0, 1)
+    
+    # X_test = np.delete(X_test, 6, 1)
+    # X_test = np.delete(X_test, 5, 1)
+    # X_test = np.delete(X_test, 4, 1)
+    # X_test = np.delete(X_test, 2, 1)
+    # X_test = np.delete(X_test, 0, 1)
+    
+    return X_train, y_train[:, np.newaxis], X_test   # The np.newaxis trick changes it from a (n,) matrix to a (n,1) matrix.
+
+def train(X_train, y_train, label, step_size=step_size):
+    
+    runTime = timeit.default_timer() - starttime
+    print("\n===========================================================================")
+    print("Training logistic regression model (" + label + ")")
+    print("---------------------------------------------------------------------------")
+
+    w, losses = trainLogistic(X_train,y_train, max_iters, step_size)
+    w = deZeroWeight(w)
+    y_pred_train = predict(X_train, w, y_train)
+    
+    print("Learned weight vector:")
+    print("{}".format([np.round(a,4)[0] for a in w]))
+    print("---------------------------------------------------------------------------")
+    print(("Run Time: " + str(timeit.default_timer() - starttime - runTime)))
+    print("---------------------------------------------------------------------------")
+    
+    return w, losses
+
+
+def train_search_logbias(X_train, y_train, label):
+    
+    runTime = timeit.default_timer() - starttime
+    print("===========================================================================")
+    print("Training logistic regression model (" + label + ")")
+    print("---------------------------------------------------------------------------")
+
+    res = []
+    labels = []
+    
+    for i in range(41):
+        b = (i-20)/10
+        labels.append(b)
+        w, losses = trainLogistic(X_train,y_train,b)
+        p = predict(X_train, w, y_train)
+        res.append(p)
+    
+    print("Learned weight vector:")
+    print("{}".format([np.round(a,4)[0] for a in w]))
+    print("---------------------------------------------------------------------------")
+    print(("Run Time: " + str(timeit.default_timer() - starttime - runTime)))
+    print("===========================================================================\n")
+    
+    return w, losses, res, labels
+
+
+def train_search_offset(X_train, y_train, label):
+    
+    runTime = timeit.default_timer() - starttime
+    print("===========================================================================")
+    print("Training logistic regression model (" + label + ")")
+    print("---------------------------------------------------------------------------")
+
+    w, losses = trainLogistic(X_train,y_train)
+       
+    res = []
+    labels = []
+    
+    for i in range(41):
+        v = (i-20)/10
+        labels.append(v)
+        p = predict(X_train, w, y_train, v)
+        res.append(p)
+    
+    print("Learned weight vector:")
+    print("{}".format([np.round(a,4)[0] for a in w]))
+    print("---------------------------------------------------------------------------")
+    print(("Run Time: " + str(timeit.default_timer() - starttime - runTime)))
+    print("===========================================================================\n")
+    
+    return w, losses, res, labels
+
+def train_search_logbias(X_train, y_train, label):
+    
+    runTime = timeit.default_timer() - starttime
+    print("===========================================================================")
+    print("Training logistic regression model (" + label + ")")
+    print("---------------------------------------------------------------------------")
+
+    res = []
+    labels = []
+    
+    for i in range(41):
+        b = (i-20)/10
+        labels.append(b)
+        w, losses = trainLogistic(X_train,y_train,b)
+        p = predict(X_train, w, y_train)
+        res.append(p)
+    
+    print("Learned weight vector:")
+    print("{}".format([np.round(a,4)[0] for a in w]))
+    print("---------------------------------------------------------------------------")
+    print(("Run Time: " + str(timeit.default_timer() - starttime - runTime)))
+    print("===========================================================================\n")
+    
+    return w, losses, res, labels
+
+def predict(D,w,y=np.array([]),offset=best_offset):
+    
+    
+    if (logisticVectorResults == 1):
+        offset=np.average(D) + best_offset
+    
+    vals = D@w
+    predicted = vals >= offset
+    
+    acc = 0
+    if y.shape[0] == D.shape[0]:
+        acc = np.mean(predicted == y)*100
+        print("---------------------------------------------------------------------------")
+        print(str(offset) + ": Train accuracy: {:.4}%".format(acc))
+        
+    return acc
+
+def generateSubmissionFile(predictions, name = 'test_predicted'):
+    filename = name + ' ' + str(datetime.now().strftime("%d-%b-%Y %H %M %S")) + '.csv'
+    test_out = np.concatenate((np.expand_dims(np.array(range(len(predictions)),dtype=np.int), axis=1), predictions), axis=1)
+    header = np.array([["id", "type"]])
+    test_out = np.concatenate((header, test_out))
+    np.savetxt(filename, test_out, fmt='%s', delimiter=',')
+    print('Written to file: ' + filename)
+    return
+
+def plotGraphNLL(losses_sets, labels_sets):
+    plt.figure(figsize=(16,9))
+    
+    for i in range(len(losses_sets)):
+        plt.plot(range(len(losses_sets[i])), losses_sets[i], label=str(labels_sets[i]))
+    
+    plt.title("Logistic Regression Training Curve")
+    plt.xlabel("Epoch")
+    plt.ylabel("Negative Log Likelihood")
+    plt.legend()
+    plt.show()
+    return
+
+def plotGraphGeneric(values, labels, plotLabels, xLabel = "Accuracy", yLabel = "Value", title=""):
+    plt.figure(figsize=(16,9))
+    
+    for i in range(len(values)):
+        plt.plot(labels[i], values[i], label=plotLabels[i])
+    
+    plt.title(title)
+    plt.xlabel(xLabel)
+    plt.ylabel(yLabel)
+    plt.legend()
+    plt.show()
+    return
+
+def deZeroWeight(w):
+    for i in range(len(w)):
+        if (w[i] == 0):
+            w[i] = 0.0001
+    return w
+
+def search_weight_mult(train_X, train_y, attWt, folds, k, attIndex, att_values, weightResults):
+    
+    print("performing " + str(folds) + "-fold cross validation, k="+str(k) + ", for attribute index:" + str(attIndex))
+    
+    best_att_value = 0
+    best_att_acc = 0
+    best_att_var = 0
+    changed = 0
+
+    for a in att_values:
+        
+        attWt[attIndex] = attWt[attIndex] * a
+
+        train_X_Wt = train_X*attWt
+        w, losses = train(train_X_Wt, train_y, "Index: " + str(attIndex) + " Weight:" + str(a))
+        cv_acc, cv_std, acc_all = kFoldCrossVal(train_X*attWt, train_y, k)
+
+
+        if cv_acc > best_att_acc:
+            best_att_value = attWt[attIndex]
+            best_att_acc = cv_acc
+            best_att_var = cv_std
+            if a != 1:
+                changed = 1
+                print("\n>>>>>> Updated best value - Accuracy: " + str(cv_acc) + " Index: " + str(attIndex) + " Weight:" + str(a) + "\n")
+                print("Current attWt: " + str(attWt))
+        else:
+            attWt[attIndex] = best_att_value
+        
+    weightResults.append([attIndex, best_att_value, best_att_acc, best_att_var]);
+    return changed, attWt
+
+def print(*args):
+    newLine = ""
+    for item in args:
+        newLine = newLine + str(item) + " "
+    newLine = (
+        newLine
+        + """
+"""
+    )
+    log.write(newLine)
+    log.flush()
+    __builtin__.print(*args)
+    return
+main()
