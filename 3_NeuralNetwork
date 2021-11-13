@@ -13,7 +13,7 @@ matplotlib.rc('font', **font)
 np.random.seed(104)
 step_size = .01
 batch_size = 300
-max_epochs = 9999 # run until train acc = 100
+max_epochs = 99999 # run until train acc = 100
 # GLOBAL PARAMETERS FOR NETWORK ARCHITECTURE
 number_of_layers = 4 # best:4
 width_of_layers = 32  # best:32
@@ -28,6 +28,7 @@ logEachNode = False
 
 def main():
     
+
   # ---------------------------------------------------------------------------
   
     # Load Data
@@ -37,17 +38,29 @@ def main():
   # clip(X_train)
   # clip(X_val)
   # clip(X_test)
+  
 
-  add_convolution(X_train)
+  # add_convolution(X_train)
 
-  train_width_numer_of_layers(X_train, Y_train, X_val, Y_val, [1,2,3])
+  # train_width_numer_of_layers(X_train, Y_train, X_val, Y_val, [1,2,3])
 
     # Run
   neuralNetwork, acc = trainNeuralNetwork(X_train, Y_train, X_val, Y_val)
 
-    # Submit
-  predictions = getPredictions(neuralNetwork, X_test)
-  generateSubmissionFile(predictions, 'test_predicted ' + str(round(acc,2)))
+
+  #   # Submit
+  # predictions = getPredictions(neuralNetwork, X_test)
+
+  # problemChildren = [94,86,78,74,71,65,62,55]
+  # for i in problemChildren:
+  #   testValue = X_test[i]
+  #   logits = neuralNetwork.forward(testValue)
+  #   displayExample(testValue, "{}, {}".format(i, np.argmax(logits,axis=1)[0]))
+
+  #   # Submit
+  # predictions = getPredictions(neuralNetwork, X_test)
+  # generateSubmissionFile(predictions, 'test_predicted ' + str(round(acc,2)))
+  return
   
   # ---------------------------------------------------------------------------
   
@@ -63,6 +76,11 @@ def add_convolution(data, feature_map_size = 10, IMAGE_SIZE_width = 28, IMAGE_SI
     return feature_map
 
 
+def displayExample(x, title=""):
+    plt.imshow(x.reshape(28,28),cmap="gray")
+    if title != "":
+        plt.title(title)
+        plt.show()
 
 def train_width_numer_of_layers(X_train, Y_train, X_val, Y_val, train_number_of_layers, train_width_of_layers):
     best_acc = 0
@@ -204,17 +222,23 @@ def trainNeuralNetwork(X_train, Y_train, X_val, Y_val):
       if (val_acc > best_net_acc):
           best_net = net
           best_net_acc = val_acc
-          
+          best_trainAcc = trainAcc
+          best_loss = loss
+          best_i = i
+          print("[Epoch {:3}]   Loss:  {:8.4}     Train Acc:  {:8.4}%      Val Acc:  {:8.4}%".format(i, loss, trainAcc, val_acc*100))
+         
       # print a line for each of the following conditions: 
           # new best val acc epoch
           # mod from global variable
           # final selected epoch
-          if (i%trainPrintMod == 0)
-              print("[Epoch {:3}]   Loss:  {:8.4}     Train Acc:  {:8.4}%      Val Acc:  {:8.4}%".format(i, loss, trainAcc, val_acc*100))
+      if (i%trainPrintMod == 0):
+          print("[Epoch {:3}]   Loss:  {:8.4}     Train Acc:  {:8.4}%      Val Acc:  {:8.4}%".format(i, loss, trainAcc, val_acc*100))
       if trainAcc == 100:
           print("[Epoch {:3}]   Loss:  {:8.4}     Train Acc:  {:8.4}%      Val Acc:  {:8.4}%".format(i, loss, trainAcc, val_acc*100))
           break
-      
+         
+    print("[Best Epoch {:3}]   Loss:  {:8.4}     Train Acc:  {:8.4}%      Val Acc:  {:8.4}%".format(best_i, best_loss, best_trainAcc, best_net_acc*100))
+         
     
     graphResults(X_train, batch_size, val_losses, val_accs, losses, accs)
     return best_net, best_net_acc*100
@@ -494,9 +518,6 @@ def loadData(normalize = True):
   return X_train, Y_train, X_val, Y_val, X_test
 
 
-def displayExample(x):
-  plt.imshow(x.reshape(28,28),cmap="gray")
-  plt.show()
 
 
 if __name__=="__main__":
