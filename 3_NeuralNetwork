@@ -15,13 +15,13 @@ step_size = .01
 batch_size = 300
 max_epochs = 9999 # run until train acc = 100
 # GLOBAL PARAMETERS FOR NETWORK ARCHITECTURE
-number_of_layers = 8 # best:4
+number_of_layers = 4 # best:4
 width_of_layers = 32  # best:32
 activation = "ReLU" if True else "Sigmoid" 
 # OPTIMIZATION
 max_clips = 0
 
-trainPrintMod = 100 # only print this%number of epoch debug lines
+trainPrintMod = 1000 # only print this%number of epoch debug lines
 
 logEachStep = False
 logEachNode = False
@@ -33,12 +33,14 @@ def main():
     # Load Data
   X_train, Y_train, X_val, Y_val, X_test = loadData()
   
-    # Clip Data
-  clip(X_train)
-  clip(X_val)
-  clip(X_test)
+  #   # Clip Data
+  # clip(X_train)
+  # clip(X_val)
+  # clip(X_test)
 
- train_width_numer_of_layers([1,2,3])
+  add_convolution(X_train)
+
+  train_width_numer_of_layers(X_train, Y_train, X_val, Y_val, [1,2,3])
 
     # Run
   neuralNetwork, acc = trainNeuralNetwork(X_train, Y_train, X_val, Y_val)
@@ -49,20 +51,35 @@ def main():
   
   # ---------------------------------------------------------------------------
   
-def train_width_numer_of_layers(X_train, Y_train, X_val, Y_val, train_values):
+def add_convolution(data, feature_map_size = 10, IMAGE_SIZE_width = 28, IMAGE_SIZE_height = 28):
+    
+    # feature_map = 
+    i = 0
+    while (i + feature_map_size) < IMAGE_SIZE_width:
+        feature_map = data[IMAGE_SIZE_width*i:IMAGE_SIZE_width*i + feature_map_size]
+        a = 1
+    
+    
+    return feature_map
+
+
+
+def train_width_numer_of_layers(X_train, Y_train, X_val, Y_val, train_number_of_layers, train_width_of_layers):
     best_acc = 0
     best_nn = []
-    for i in train_values:
-        number_of_layers = i
-        neuralNetwork, acc = trainNeuralNetwork(X_train, Y_train, X_val, Y_val)
-        if (acc > best_acc):
-            best_nn = neuralNetwork
-            best_acc = acc
-            printDiv(1)
-            print("Found new best numer_of_layers: " + number_of_layers)
-            printDiv(1)
+    for i in train_number_of_layers:
+        for i in train_number_of_layers:
+            number_of_layers = i
+            neuralNetwork, acc = trainNeuralNetwork(X_train, Y_train, X_val, Y_val)
+            if (acc > best_acc):
+                best_nn = neuralNetwork
+                best_acc = acc
+                printDiv(1)
+                print("Found new best numer_of_layers: " + number_of_layers)
+                printDiv(1)
     
     return best_nn, best_acc
+
 
 def printDiv(type=1):
     if type==1:
@@ -72,20 +89,17 @@ def printDiv(type=1):
     return
     
 
-def clip(data):
+def clip(data, IMAGE_SIZE_width = 28, IMAGE_SIZE_height = 28):
     
-    IMAGE_SIZE_width = 28 
-    IMAGE_SIZE_height = 28
     c = 0
     while c < max_clips:
         X_train, width, height = clipTopBottomImageData(data, IMAGE_SIZE_width, IMAGE_SIZE_height)
         c = c + 1
     return
   
+    
+  
 def clipLeftRightImageData(data, width, height):
-    
-    
-    
     width = width - 1
     return width, height
 
@@ -187,7 +201,7 @@ def trainNeuralNetwork(X_train, Y_train, X_val, Y_val):
       loss = loss_running/len(X_train)
       
       # keep track of the epoch with the greatest accuracy
-      if (val_acc > best_net_acc || i%trainPrintMod == 0):
+      if (val_acc > best_net_acc):
           best_net = net
           best_net_acc = val_acc
           
@@ -195,8 +209,8 @@ def trainNeuralNetwork(X_train, Y_train, X_val, Y_val):
           # new best val acc epoch
           # mod from global variable
           # final selected epoch
-          
-          print("[Epoch {:3}]   Loss:  {:8.4}     Train Acc:  {:8.4}%      Val Acc:  {:8.4}%".format(i, loss, trainAcc, val_acc*100))
+          if (i%trainPrintMod == 0)
+              print("[Epoch {:3}]   Loss:  {:8.4}     Train Acc:  {:8.4}%      Val Acc:  {:8.4}%".format(i, loss, trainAcc, val_acc*100))
       if trainAcc == 100:
           print("[Epoch {:3}]   Loss:  {:8.4}     Train Acc:  {:8.4}%      Val Acc:  {:8.4}%".format(i, loss, trainAcc, val_acc*100))
           break
