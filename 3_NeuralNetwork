@@ -13,21 +13,22 @@ matplotlib.rc('font', **font)
 np.random.seed(104)
 step_size = .01
 batch_size = 300
-max_epochs = 99999 # run until train acc = 100
+max_epochs = 9999 # run until train acc = 100
 # GLOBAL PARAMETERS FOR NETWORK ARCHITECTURE
 number_of_layers = 4 # best:4
 width_of_layers = 32  # best:32
 activation = "ReLU" if True else "Sigmoid" 
 # OPTIMIZATION
 max_clips = 0
+convulution_feature_map_width_height = 0
 
 trainPrintMod = 1000 # only print this%number of epoch debug lines
+
 
 logEachStep = False
 logEachNode = False
 
-def main():
-    
+def main():    
 
   # ---------------------------------------------------------------------------
   
@@ -40,7 +41,9 @@ def main():
   # clip(X_test)
   
 
-  # add_convolution(X_train)
+  X_train = add_convolution(X_train, convulution_feature_map_width_height)
+  X_val = add_convolution(X_val, convulution_feature_map_width_height)
+  X_test = add_convolution(X_test, convulution_feature_map_width_height)
 
   # train_width_numer_of_layers(X_train, Y_train, X_val, Y_val, [1,2,3])
 
@@ -60,19 +63,74 @@ def main():
   #   # Submit
   # predictions = getPredictions(neuralNetwork, X_test)
   # generateSubmissionFile(predictions, 'test_predicted ' + str(round(acc,2)))
+  
+  
+  
+  printDiv(2)
+  print("step_size: " + str(step_size))
+  print("batch_size: " +  str(batch_size))
+  print("activation: " + str(activation))
+  print("number_of_layers: " +  str(number_of_layers))
+  print("width_of_layers: " +  str(width_of_layers))
+  print("activation: " + str(activation))
+  print("max_clips: " + str(max_clips))
+  print("convulution_feature_map_width_height: " + str(convulution_feature_map_width_height))
+  printDiv(1)
+  print("Val Acc: " +  str(round(acc,2)))
   return
   
   # ---------------------------------------------------------------------------
   
-def add_convolution(data, feature_map_size = 10, IMAGE_SIZE_width = 28, IMAGE_SIZE_height = 28):
+def add_convolution(data, feature_map_width_height = 10, IMAGE_SIZE_width = 28, IMAGE_SIZE_height = 28):
     
-    # feature_map = 
-    i = 0
-    while (i + feature_map_size) < IMAGE_SIZE_width:
-        feature_map = data[IMAGE_SIZE_width*i:IMAGE_SIZE_width*i + feature_map_size]
-        a = 1
+    if (feature_map_width_height == 0):
+        return data
     
+    print("Adding convolution")
     
+    if (feature_map_width_height > IMAGE_SIZE_width or feature_map_width_height > IMAGE_SIZE_width):
+        print("Error: feature map cannot be larger than image size")
+    
+    new_data = data
+    feature_map_size = (IMAGE_SIZE_width-feature_map_width_height)*(IMAGE_SIZE_height-feature_map_width_height)*(feature_map_width_height**2)
+    feature_map = np.zeros((len(data),feature_map_size), dtype=float) 
+
+    for imageNumber in range(len(data)):
+                
+        image_feature_map = np.zeros(feature_map_size, dtype=float) 
+        pos = 0
+        # loop vertical pixels
+        for w in range(IMAGE_SIZE_width - feature_map_width_height):
+            # loop horizontal pixels
+            for h in range(IMAGE_SIZE_height - feature_map_width_height):
+                
+                # a convolution is a single subset of the data matrix shape(isw,ish), represented as matrix shape(fms,fms) but stored as a vector
+                convulution_size = feature_map_width_height**2
+                convolution = np.zeros(convulution_size, dtype=float) 
+                
+                # loop every feature subset
+                for i in range(feature_map_width_height):
+                    
+                    # start index in vector form for top left pixel position
+                    c_leftOffset = w
+                    c_topOffset = h*IMAGE_SIZE_width
+                    
+                    # use start index to get sub-vector
+                    c_startPos = IMAGE_SIZE_width*i + c_leftOffset + c_topOffset
+                    c_endPos = IMAGE_SIZE_width*i+feature_map_width_height + c_leftOffset + c_topOffset
+                    
+                    # get convulution from data
+                    convolution[i*feature_map_width_height : (i+1)*feature_map_width_height] = data[imageNumber, c_startPos:c_endPos]
+                
+                #  append every loop of h and w to image's feature
+                f_startPos = convulution_size*pos
+                f_endPos = convulution_size*(pos+1)
+                image_feature_map[f_startPos:f_endPos] = convolution
+                pos = pos + 1
+            
+        feature_map[imageNumber] = image_feature_map
+        
+    print("ADDED -  Feature map w/h: " + str(feature_map_width_height) + "  Resulting in a feature map size: " + str(feature_map_size))
     return feature_map
 
 
@@ -231,12 +289,12 @@ def trainNeuralNetwork(X_train, Y_train, X_val, Y_val):
           # new best val acc epoch
           # mod from global variable
           # final selected epoch
-      if (i%trainPrintMod == 0):
-          print("[Epoch {:3}]   Loss:  {:8.4}     Train Acc:  {:8.4}%      Val Acc:  {:8.4}%".format(i, loss, trainAcc, val_acc*100))
-      if trainAcc == 100:
+      elif trainAcc == 100:
           print("[Epoch {:3}]   Loss:  {:8.4}     Train Acc:  {:8.4}%      Val Acc:  {:8.4}%".format(i, loss, trainAcc, val_acc*100))
           break
-         
+      elif (i%trainPrintMod == 0):
+          print("[Epoch {:3}]   Loss:  {:8.4}     Train Acc:  {:8.4}%      Val Acc:  {:8.4}%".format(i, loss, trainAcc, val_acc*100))
+        
     print("[Best Epoch {:3}]   Loss:  {:8.4}     Train Acc:  {:8.4}%      Val Acc:  {:8.4}%".format(best_i, best_loss, best_trainAcc, best_net_acc*100))
          
     
