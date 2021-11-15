@@ -11,12 +11,12 @@ matplotlib.rc('font', **font)
 
 # GLOBAL PARAMETERS FOR STOCHASTIC GRADIENT DESCENT
 np.random.seed(104)
-step_size = .01
+step_size = .001
 batch_size = 300
-max_epochs = 9999 # run until train acc = 100
+max_epochs = 99999 # run until train acc = 100
 # GLOBAL PARAMETERS FOR NETWORK ARCHITECTURE
-number_of_layers = 4 # best:4
-width_of_layers = 32  # best:32
+number_of_layers = 34 # best:4
+width_of_layers = 29  # best:32
 activation = "ReLU" if True else "Sigmoid" 
 # OPTIMIZATION
 max_clips = 0
@@ -24,6 +24,8 @@ convulution_feature_map_width_height = 0
 
 trainPrintMod = 1000 # only print this%number of epoch debug lines
 
+train_number = [31,32,33,34,35,36,37,38,39,40]
+train_width = [2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]
 
 logEachStep = False
 logEachNode = False
@@ -31,6 +33,16 @@ logEachNode = False
 def main():    
 
   # ---------------------------------------------------------------------------
+  
+  printDiv(2)
+  print("step_size: " + str(step_size))
+  print("batch_size: " +  str(batch_size))
+  print("activation: " + str(activation))
+  print("max_clips: " + str(max_clips))
+  print("train_number: " + str(train_number))
+  print("train_width: " + str(train_width))
+  print("convulution_feature_map_width_height: " + str(convulution_feature_map_width_height))
+  printDiv(1)
   
     # Load Data
   X_train, Y_train, X_val, Y_val, X_test = loadData()
@@ -45,7 +57,7 @@ def main():
   X_val = add_convolution(X_val, convulution_feature_map_width_height)
   X_test = add_convolution(X_test, convulution_feature_map_width_height)
 
-  # train_width_numer_of_layers(X_train, Y_train, X_val, Y_val, [1,2,3])
+  # number_of_layers, width_of_layers = train_width_number_of_layers(X_train, Y_train, X_val, Y_val, train_number, train_width)
 
     # Run
   neuralNetwork, acc = trainNeuralNetwork(X_train, Y_train, X_val, Y_val)
@@ -140,21 +152,27 @@ def displayExample(x, title=""):
         plt.title(title)
         plt.show()
 
-def train_width_numer_of_layers(X_train, Y_train, X_val, Y_val, train_number_of_layers, train_width_of_layers):
+def train_width_number_of_layers(X_train, Y_train, X_val, Y_val, train_number_of_layers, train_width_of_layers):
     best_acc = 0
     best_nn = []
-    for i in train_number_of_layers:
-        for i in train_number_of_layers:
-            number_of_layers = i
+    for n in train_number_of_layers:
+        for w in train_width_of_layers:
+            printDiv(1)
+            print("Training -  number_of_layers: " + str(n) + " width_of_layers: " + str(w))
+            number_of_layers = n
+            width_of_layers = w
             neuralNetwork, acc = trainNeuralNetwork(X_train, Y_train, X_val, Y_val)
             if (acc > best_acc):
                 best_nn = neuralNetwork
                 best_acc = acc
-                printDiv(1)
-                print("Found new best numer_of_layers: " + number_of_layers)
-                printDiv(1)
-    
-    return best_nn, best_acc
+                best_number_of_layers = number_of_layers
+                best_width_of_layers = width_of_layers
+                printDiv(2)
+                print("Found new best -  number_of_layers: " + str(n) + " width_of_layers: " + str(w))
+                printDiv(2)
+    number_of_layers = best_number_of_layers
+    width_of_layers = best_width_of_layers
+    return number_of_layers, width_of_layers
 
 
 def printDiv(type=1):
