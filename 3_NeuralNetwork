@@ -151,7 +151,7 @@ def add_convolution(data, feature_map_width_height = 10, IMAGE_SIZE_width = 28, 
         feature_map[imageNumber] = image_feature_map
         normal_map[imageNumber] = image_normal_map
         
-    print("ADDED -  Feature map w/h: " + str(feature_map_width_height) + "  Resulting in a feature map size: " + str(feature_map_size))
+    print("ADDED -  Feature map w/h: " + str(feature_map_width_height) + "  Resulting in a feature map size: " + str(feature_map_size) + "  Normal map size: " + str(normal_map_size))
     return np.concatenate((data,normal_map),axis=1)
 
 
