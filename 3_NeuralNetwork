@@ -10,17 +10,17 @@ matplotlib.rc('font', **font)
 
 
 # GLOBAL PARAMETERS FOR STOCHASTIC GRADIENT DESCENT
-np.random.seed(104)
-step_size = .001
+np.random.seed(102)
+step_size = 0.01
 batch_size = 300
-max_epochs = 99999 # run until train acc = 100
+max_epochs = 9999 # run until train acc = 100
 # GLOBAL PARAMETERS FOR NETWORK ARCHITECTURE
-number_of_layers = 34 # best:4
-width_of_layers = 29  # best:32
+number_of_layers = 4 # best:4
+width_of_layers = 32  # best:32
 activation = "ReLU" if True else "Sigmoid" 
 # OPTIMIZATION
 max_clips = 0
-convulution_feature_map_width_height = 0
+convulution_feature_map_width_height = 3
 
 trainPrintMod = 1000 # only print this%number of epoch debug lines
 
@@ -34,18 +34,21 @@ def main():
 
   # ---------------------------------------------------------------------------
   
+  
   printDiv(2)
   print("step_size: " + str(step_size))
   print("batch_size: " +  str(batch_size))
   print("activation: " + str(activation))
   print("max_clips: " + str(max_clips))
+  print("number_of_layers: " + str(number_of_layers))
+  print("width_of_layers: " + str(width_of_layers))
   print("train_number: " + str(train_number))
   print("train_width: " + str(train_width))
   print("convulution_feature_map_width_height: " + str(convulution_feature_map_width_height))
   printDiv(1)
   
     # Load Data
-  X_train, Y_train, X_val, Y_val, X_test = loadData()
+  X_train, Y_train, X_val, Y_val, X_test = loadData(True)
   
   #   # Clip Data
   # clip(X_train)
@@ -103,18 +106,22 @@ def add_convolution(data, feature_map_width_height = 10, IMAGE_SIZE_width = 28, 
     if (feature_map_width_height > IMAGE_SIZE_width or feature_map_width_height > IMAGE_SIZE_width):
         print("Error: feature map cannot be larger than image size")
     
-    new_data = data
-    feature_map_size = (IMAGE_SIZE_width-feature_map_width_height)*(IMAGE_SIZE_height-feature_map_width_height)*(feature_map_width_height**2)
+    feature_map_size = (IMAGE_SIZE_width-(feature_map_width_height-1))*(IMAGE_SIZE_height-(feature_map_width_height-1))*(feature_map_width_height**2)
     feature_map = np.zeros((len(data),feature_map_size), dtype=float) 
+
+    normal_map_size = (IMAGE_SIZE_width-(feature_map_width_height-1))*(IMAGE_SIZE_height-(feature_map_width_height-1))
+    normal_map = np.zeros((len(data),normal_map_size), dtype=float) 
 
     for imageNumber in range(len(data)):
                 
         image_feature_map = np.zeros(feature_map_size, dtype=float) 
+        image_normal_map = np.zeros(normal_map_size, dtype=float) 
+        
         pos = 0
         # loop vertical pixels
-        for w in range(IMAGE_SIZE_width - feature_map_width_height):
+        for h in range(IMAGE_SIZE_height - (feature_map_width_height-1)):
             # loop horizontal pixels
-            for h in range(IMAGE_SIZE_height - feature_map_width_height):
+            for w in range(IMAGE_SIZE_width - (feature_map_width_height-1)):
                 
                 # a convolution is a single subset of the data matrix shape(isw,ish), represented as matrix shape(fms,fms) but stored as a vector
                 convulution_size = feature_map_width_height**2
@@ -125,25 +132,27 @@ def add_convolution(data, feature_map_width_height = 10, IMAGE_SIZE_width = 28, 
                     
                     # start index in vector form for top left pixel position
                     c_leftOffset = w
-                    c_topOffset = h*IMAGE_SIZE_width
+                    c_topOffset = (i+h)*IMAGE_SIZE_width
                     
                     # use start index to get sub-vector
-                    c_startPos = IMAGE_SIZE_width*i + c_leftOffset + c_topOffset
-                    c_endPos = IMAGE_SIZE_width*i+feature_map_width_height + c_leftOffset + c_topOffset
+                    c_startPos = c_leftOffset + c_topOffset
+                    c_endPos = feature_map_width_height + c_startPos
                     
                     # get convulution from data
                     convolution[i*feature_map_width_height : (i+1)*feature_map_width_height] = data[imageNumber, c_startPos:c_endPos]
-                
+                   
                 #  append every loop of h and w to image's feature
                 f_startPos = convulution_size*pos
                 f_endPos = convulution_size*(pos+1)
                 image_feature_map[f_startPos:f_endPos] = convolution
+                image_normal_map[pos] = np.mean(convolution)
                 pos = pos + 1
             
         feature_map[imageNumber] = image_feature_map
+        normal_map[imageNumber] = image_normal_map
         
     print("ADDED -  Feature map w/h: " + str(feature_map_width_height) + "  Resulting in a feature map size: " + str(feature_map_size))
-    return feature_map
+    return np.concatenate((data,normal_map),axis=1)
 
 
 def displayExample(x, title=""):
