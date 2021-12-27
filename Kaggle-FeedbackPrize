@@ -49,34 +49,5 @@ def loadData(folderName):
     
     return traindata
     
-    
-    
-    # # train = np.loadtxt("mnist_small_train_justindexes.csv", delimiter=",", dtype=np.float64)
-    # print("Loading data 2/3")
-    # val = np.loadtxt("mnist_small_val.csv", delimiter=",", dtype=np.float64)
-    # # val = np.loadtxt("mnist_small_val_tworow.csv", delimiter=",", dtype=np.float64)
-    # print("Loading data 3/3")
-    # test = np.loadtxt("mnist_small_test.csv", delimiter=",", dtype=np.float64)
-    # # test = np.loadtxt("mnist_small_test_tworow.csv", delimiter=",", dtype=np.float64)
-    
-    # # Normalize Our Data
-    # if normalize:
-    #     X_train = train[:,:-1]/256-0.5
-    #     X_val = val[:,:-1]/256-0.5
-    #     X_test = test/256-0.5
-    # else:
-    #     X_train = train[:,:-1]
-    #     X_val = val[:,:-1]
-    #     X_test = test
-    
-    # Y_train = train[:,-1].astype(np.int)[:,np.newaxis]
-    # Y_val = val[:,-1].astype(np.int)[:,np.newaxis]
-    
-    # print("Loaded train: " + str(X_train.shape))
-    # print("Loaded val: " + str(X_val.shape))
-    # print("Loaded test: "+ str(X_test.shape)) 
-    
-    # return X_train, Y_train, X_val, Y_val, X_tes
-
 if __name__=="__main__":
   main()
