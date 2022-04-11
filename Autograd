@@ -4,7 +4,6 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
-
 def main():
 
   functionUnitTests()
@@ -20,9 +19,9 @@ def main():
     x2.value += 0.1*x2.grad
     x1.grad = x2.grad = 0
   
-  #plt.figure(figsize=(15,7))
-  #y.drawGraph()
-  #plt.show()
+  plt.figure(figsize=(15,7))
+  y.drawGraph()
+  plt.show()
 
   print(x1,x2, y)
   
@@ -42,7 +41,6 @@ class Variable:
     self.id = next(Variable.id_iter) # Unique ID
 
 
-
   def backward(self):
     
     # Compute a topological ordering so each node is processed
@@ -52,7 +50,7 @@ class Variable:
     # Run backprop following the topological sort
     self.grad=1
     for n in nodes:
-    
+        
       dy_dparent = parent.grad
 
       #TODO : Update children gradients
@@ -164,6 +162,9 @@ class Variable:
       return Variable(a, name="const")
     return a
     
+###################################
+# Functions for forward and back propagation 
+###################################
 
 def _f(a,b=None):
     if b != None:
@@ -289,7 +290,10 @@ class Max:
 
   def backward(parent, children):
     a,b = _b(children[0],children[1])
-    return []
+    if (a > b):
+        return [1,0]
+    else:
+        return [0,1]
 
 # Forward: a,b -> min(a,b)
 class Min:
@@ -297,11 +301,14 @@ class Min:
 
   def forward(a, b):
     a,b = _f(a,b)
-    return 1
+    return Variable(np.minimum(a,b),[a,b], Min)
 
   def backward(parent, children):
     a,b = _b(children[0],children[1])
-    return 1
+    if (a < b):
+        return [1,0]
+    else:
+        return [0,1]
 
 ######################################
 # Aliases to make coding cleaner
@@ -372,6 +379,7 @@ def backpropUnitTests():
   c = b/3
   d = c - 1
 
+  # If you want to display the graph, uncomment these lines.
   #plt.figure(figsize=(18,6))
   #d.drawGraph()
   #plt.show()
@@ -389,6 +397,7 @@ def backpropUnitTests():
 
   y = ln(x1+sin(x1))*max(x2,x3)*2
   
+  # If you want to display the graph, uncomment these lines.
   #plt.figure(figsize=(18,6))
   #y.drawGraph()
   #plt.show()
