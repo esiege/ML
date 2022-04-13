@@ -4,6 +4,9 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
+plotRes = False
+verbose = False
+
 def main():
 
   functionUnitTests()
@@ -22,11 +25,8 @@ def main():
   plt.figure(figsize=(15,7))
   y.drawGraph()
   plt.show()
-
   print(x1,x2, y)
   
-
-
 class Variable:
  
   id_iter = itertools.count() # Assign unique ID to each variable
@@ -42,7 +42,6 @@ class Variable:
 
 
   def backward(self):
-    
     # Compute a topological ordering so each node is processed
     # after all parents have sent gradients to it
     nodes = self.topoSort()
@@ -51,12 +50,35 @@ class Variable:
     self.grad=1
     for n in nodes:
         
-      dy_dparent = parent.grad
-
-      #TODO : Update children gradients
-
-
-
+      if verbose:  
+          print("-------------------")
+          print("nodeName: " +  str(n.nodeName()))
+          print("value: " +  str(n.value))
+          print("id: " +  str(n.id))
+      
+      if (len(n.children) > 0):
+          try:
+              if verbose:  
+                  print("n.grad: " +  str(n.grad))
+                  print("backward() = " + str(n.func.backward(n, n.children)))
+              n.grad = np.multiply(n.func.backward(n, n.children),n.grad)
+              if verbose:  
+                  print("n.grad: " +  str(n.grad))
+          except:
+              print(str(n.name) + " not working")
+          
+      for i in range(len(n.children)):
+          a = n.children[i].grad + n.grad[i]
+          n.children[i].grad = a
+          if verbose:  
+              print("n.children[" + str(i) + "].grad: " +  str(n.children[i].grad))
+              print("n.children[" + str(i) + "].nodeName: " +  str(n.children[i].nodeName()))
+              print("n.children[" + str(i) + "].value: " +  str(n.children[i].value))
+          
+      if verbose:  
+          print("grad: " +  str(n.grad))
+          print("-------------------")
+      
   def nodeName(self):
     if self.func != None:
       return self.func.label
@@ -168,13 +190,8 @@ class Variable:
 
 def _f(a,b=None):
     if b != None:
-      return Variable.convert(a).value, Variable.convert(b).value
-    return Variable.convert(a).value
-
-def _b(a,b=None):
-    if b != None:
-      return a.value, b.value
-    return a.value
+      return Variable.convert(a), Variable.convert(b)
+    return Variable.convert(a)
 
 # Forward: a - > 1/a
 class Inv:
@@ -182,11 +199,11 @@ class Inv:
 
   def forward(a):
     a = _f(a)
-    return Variable(1/a, [a], Inv)
+    return Variable(1/a.value, [a], Inv)
 
   def backward(parent, children):
-    a = _b(children[0])
-    return [-1/a**2]
+    a = children[0]
+    return [-1/a.value**2]
 
 # Forward: a,b -> a+b
 class Add:
@@ -194,11 +211,10 @@ class Add:
 
   def forward(a,b):
     a,b = _f(a,b)
-    return Variable(a+b, [a,b], Add)
+    return Variable(a.value+b.value, [a,b], Add)
 
   def backward(parent, children):
     return [1, 1]
-    # or maybe? return [children[1].value, children[1].value]
 
 # Forward: a,b -> a*b  
 class Prod:
@@ -206,11 +222,11 @@ class Prod:
 
   def forward(a,b):
     a,b = _f(a,b)
-    return Variable(a*b, [a,b], Prod)
+    return Variable(a.value*b.value, [a,b], Prod)
 
   def backward(parent, children):
-    a,b = _b(children[0],children[1])
-    return [b, a]
+    a,b = children[0],children[1]
+    return [b.value, a.value]
 
 # Forward: a -> ln(a)
 class Ln:
@@ -218,11 +234,11 @@ class Ln:
 
   def forward(a):
     a = _f(a)
-    return Variable(np.log(a), [a], Ln)
+    return Variable(np.log(a.value), [a], Ln)
 
   def backward(parent, children):
-    a = _b(children[0])
-    return [1/a]
+    a = children[0]
+    return [1/a.value]
 
 # Forward: a,b -> a^b
 class Pow:
@@ -230,11 +246,11 @@ class Pow:
 
   def forward(a, b):
     a,b = _f(a,b)
-    return Variable(a**b, [a,b], Pow)
+    return Variable(a.value**b.value, [a,b], Pow)
 
   def backward(parent, children):
-    a,b = _b(children[0],children[1])
-    return [b*a**(b-1),a**b*np.log(a)]
+    a,b = children[0],children[1]
+    return [b.value*a.value**(b.value-1),a.value**b.value*np.log(a.value)]
 
 ######################################
 # Trig Functions
@@ -246,11 +262,11 @@ class Sin:
 
   def forward(a):
     a = _f(a)
-    return Variable(np.sin(a),[a], Sin)
+    return Variable(np.sin(a.value),[a], Sin)
 
   def backward(parent, children):
-    a = _b(children[0])
-    return [np.cos(a)]
+    a = children[0]
+    return [np.cos(a.value)]
 
 # Forward: a -> cos(a)
 class Cos:
@@ -258,11 +274,11 @@ class Cos:
 
   def forward(a):
     a = _f(a)
-    return Variable(np.cos(a),[a], Cos)
+    return Variable(np.cos(a.value),[a], Cos)
 
   def backward(parent, children):
-    a = _b(children[0])
-    return [-np.sin(a)]
+    a = children[0]
+    return [-np.sin(a.value)]
 
 # Forward: a -> tan(a)
 class Tan:
@@ -270,11 +286,11 @@ class Tan:
 
   def forward(a):
     a = _f(a)
-    return Variable(np.tan(a),[a], Tan)
+    return Variable(np.tan(a.value),[a], Tan)
 
   def backward(parent, children):
-    a = _b(children[0])
-    return [(1/np.cos(a))**2]
+    a = children[0]
+    return [(1/np.cos(a.value))**2]
 
 ######################################
 # Max/Min Functions
@@ -286,11 +302,11 @@ class Max:
 
   def forward(a, b):
     a,b = _f(a,b)
-    return Variable(np.maximum(a,b),[a,b], Max)
+    return Variable(np.maximum(a.value,b.value),[a,b], Max)
 
   def backward(parent, children):
-    a,b = _b(children[0],children[1])
-    if (a > b):
+    a,b = children[0],children[1]
+    if (a.value > b.value):
         return [1,0]
     else:
         return [0,1]
@@ -301,11 +317,11 @@ class Min:
 
   def forward(a, b):
     a,b = _f(a,b)
-    return Variable(np.minimum(a,b),[a,b], Min)
+    return Variable(np.minimum(a.value,b.value),[a,b], Min)
 
   def backward(parent, children):
-    a,b = _b(children[0],children[1])
-    if (a < b):
+    a,b = children[0],children[1]
+    if (a.value < b.value):
         return [1,0]
     else:
         return [0,1]
@@ -373,23 +389,28 @@ def functionUnitTests():
 
 def backpropUnitTests():
   # Unit Test 0
-  x1 = Variable(5.0, name="x_1")
-  a = x1+3
-  b = a*3
-  c = b/3
-  d = c - 1
+  print("===========UNIT TEST 0===========")
+  x1 = Variable(5.0, name="x_1")  #    5
+  a = x1+3                        #    8
+  b = a*3                         #    24
+  c = b/3                         #    8
+  d = c - 1                       #    7
+  
 
-  # If you want to display the graph, uncomment these lines.
-  #plt.figure(figsize=(18,6))
-  #d.drawGraph()
-  #plt.show()
+  if plotRes:
+      plt.figure(figsize=(18,6))
+      d.drawGraph()
+      plt.show()
 
   d.backward()
+  print("x1.grad: " +  str(x1.grad))
   assert(x1.grad == 1)
 
   
   # Unit Test 1 
-
+  print("")
+  print("===========UNIT TEST 1===========")
+  
   # Produce example graph from the assignment
   x1 = Variable(5.0, name="x_1")
   x2 = Variable(-2.0, name="x_2")
@@ -397,20 +418,29 @@ def backpropUnitTests():
 
   y = ln(x1+sin(x1))*max(x2,x3)*2
   
-  # If you want to display the graph, uncomment these lines.
-  #plt.figure(figsize=(18,6))
-  #y.drawGraph()
-  #plt.show()
+  
+  if plotRes:
+      plt.figure(figsize=(18,6))
+      y.drawGraph()
+      plt.show()
 
   # Execute backpropagation
   y.backward()
 
+  
+
+  print("x1.grad: " +  str(x1.grad))
+  print("x2.grad: " +  str(x2.grad))
+  print("x3.grad: " +  str(x3.grad))
+      
+      
   assert( abs(x1.grad - -1.27) < 0.01 )
   assert( abs(x2.grad - 2.79) < 0.01 )
   assert( abs(x3.grad - 0) < 0.01 )
 
-
   # Unit Test 2 
+  print("")
+  print("===========UNIT TEST 2===========")
 
   # Produce example graph from the assignment
   x1 = Variable(5.0, name="x_1")
@@ -422,19 +452,22 @@ def backpropUnitTests():
       else:
         y = y - x1/i 
   
-  # If you want to display the graph, uncomment these lines.
-  #plt.figure(figsize=(18,6))
-  #y.drawGraph()
-  #plt.show()
+  if plotRes:
+      plt.figure(figsize=(18,6))
+      y.drawGraph()
+      plt.show()
 
   # Execute backpropagation
   y.backward()
 
+  print("x1.grad: " +  str(x1.grad))
   assert( abs(x1.grad - 4.666666666666666) < 0.01 )
 
 
   # Unit Test 3 
-
+  print("")
+  print("===========UNIT TEST 3===========")
+  
   # Produce example graph from the assignment
   x1 = Variable(0.5, name="x_1")
   x2 = Variable(1.0, name="x_2")
@@ -444,15 +477,21 @@ def backpropUnitTests():
   c = min(a,b)+max(a,b)
 
 
-  # If you want to display the graph, uncomment these lines.
-  #plt.figure(figsize=(18,6))
-  #c.drawGraph()
-  #plt.show()
+  if plotRes:
+      plt.figure(figsize=(18,6))
+      c.drawGraph()
+      plt.show()
 
   # Execute backpropagation
   c.backward()
+  
+  print("x1.grad: " +  str(x1.grad))
+  print("x2.grad: " +  str(x2.grad))
   assert( abs(x1.grad - -61.04473795858586) < 0.01 )
   assert( abs(x2.grad - 0.8119554249121308) < 0.01 )
+  
+  
+  print("You Win!")
 
 if __name__ == "__main__":
   main()
