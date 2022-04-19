@@ -28,7 +28,7 @@ hp_decay = 1
 
 
 auto_train_number_of_layers = [1,2,4,8,16,32,64,128,256]
-auto_train_width_of_layers = [2,4,8,16,32,64,128,256]
+auto_train_width_of_layers = [1,2,4,8,16,32,64,128,256]
 
 
 
@@ -378,7 +378,7 @@ class FeedForwardNeuralNetwork:
 # Utility Functions for Loading and Visualizing Data
 #####################################################
 
-def loadCIFAR10Data():
+def loadCIFAR10Data(normalize = True):
 
   with open("cifar10_hst_train", 'rb') as fo:
     data = pickle.load(fo)
@@ -394,6 +394,12 @@ def loadCIFAR10Data():
     data = pickle.load(fo)
   X_test = data['images']
   Y_test = data['labels']
+  
+  
+  if normalize:
+    X_train = X_train/256-0.5
+    X_val = X_val/256-0.5
+    X_test = X_test/256-0.5
   
   logging.info("Loaded train: " + str(X_train.shape))
   logging.info("Loaded val: " + str(X_val.shape))
