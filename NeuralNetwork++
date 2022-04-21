@@ -11,20 +11,28 @@ logging.basicConfig(
     level=logging.INFO,
     datefmt='%Y-%m-%d %H:%M:%S')
 
+np.random.seed(102)
 
 logEachNode = False # very slow to log, print every back/forward call
 trainPrintMod = 100 # always print this%currentepoch.  We also always print the new best and other conditions.
 
+numStability = 1e-6 # aka epsilon
 
 # here be the magic numbers
 
-hp_max_epochs = 10
+hp_max_epochs = 1000
 hp_batch_size = 200
 hp_stopWhenTrainAccIs100 = True
-hp_step_size = 0.003
+hp_step_size = 0.001
 hp_number_of_layers = 4
 hp_width_of_layers = 256
-hp_decay = 1
+hp_decay = 0.9
+hp_opti_method = "ADAM"
+
+    
+b1 = 0.9
+b2 = 0.999
+    
 
 auto_train_number_of_layers = [2,4,8,16,32,64,128,256]
 auto_train_width_of_layers = [2,4,8,16,32,64,128,256,512,1024]
@@ -41,9 +49,9 @@ def main():
     output_dim = 3 # number of class labels
     
     # Run
-    neuralNetwork, acc = trainNeuralNetwork_ADAM(X_train, Y_train, X_val, Y_val)
+    neuralNetwork, acc = trainNeuralNetwork(X_train, Y_train, X_val, Y_val)
   
-    #auto_train(X_train, Y_train, X_val, Y_val, auto_train_number_of_layers, auto_train_width_of_layers)
+    auto_train(X_train, Y_train, X_val, Y_val, auto_train_number_of_layers, auto_train_width_of_layers)
 
 
   # For each epoch below max epochs
@@ -69,8 +77,8 @@ def main():
 
 
 
-def trainNeuralNetwork_ADAM(X_train, Y_train, X_val, Y_val):
- 
+def trainNeuralNetwork(X_train, Y_train, X_val, Y_val):
+    global hp_step_size
     net = FeedForwardNeuralNetwork(X_train.shape[1], 10, hp_width_of_layers, hp_number_of_layers)
     
     # loss vars
@@ -82,13 +90,14 @@ def trainNeuralNetwork_ADAM(X_train, Y_train, X_val, Y_val):
     lossFunc = CrossEntropySoftmax()
     
     inds = np.arange(len(X_train))
-    for i in range(hp_max_epochs):
+    for i in range(1,hp_max_epochs):
+      #print("Epoch: " + str(i) + "/" + str(len(X_train)))
       np.random.shuffle(inds)
     
       j = 0
       acc_running = loss_running = 0
       while j < len(X_train):
-    
+        #print("Len: " + str(j) + "/" + str(len(X_train)))
         b = min(hp_batch_size, len(X_train)-j)
         X_batch = X_train[inds[j:j+b]]
         Y_batch = Y_train[inds[j:j+b]].astype(int)
@@ -101,7 +110,7 @@ def trainNeuralNetwork_ADAM(X_train, Y_train, X_val, Y_val):
         loss_grad =   lossFunc.backward()
         
         net.backward(loss_grad)
-        net.step()
+        net.step(i, hp_step_size*hp_decay**i)
         losses.append(loss)
         accs.append(acc)
         
@@ -118,80 +127,6 @@ def trainNeuralNetwork_ADAM(X_train, Y_train, X_val, Y_val):
       
       loss = loss_running/len(X_train)
       
-      # keep track of the epoch with the greatest accuracy
-      if (val_acc > best_net_acc):
-          best_net = net
-          best_net_acc = val_acc
-          best_trainAcc = trainAcc
-          best_loss = loss
-          best_i = i
-          print("[Epoch {:3}]   Loss:  {:8.4}     Train Acc:  {:8.4}%      Val Acc:  {:8.4}%".format(i, loss, trainAcc, val_acc*100))
-         
-      # print a line for each of the following conditions: 
-          # new best val acc epoch
-          # mod from global variable
-          # final selected epoch
-      elif trainAcc == 100:
-          print("[Epoch {:3}]   Loss:  {:8.4}     Train Acc:  {:8.4}%      Val Acc:  {:8.4}%".format(i, loss, trainAcc, val_acc*100))
-          if hp_stopWhenTrainAccIs100 == True:
-             break
-      elif (i%trainPrintMod == 0):
-          print("[Epoch {:3}]   Loss:  {:8.4}     Train Acc:  {:8.4}%      Val Acc:  {:8.4}%".format(i, loss, trainAcc, val_acc*100))
-        
-    print("[Best Epoch {:3}]   Loss:  {:8.4}     Train Acc:  {:8.4}%      Val Acc:  {:8.4}%".format(best_i, best_loss, best_trainAcc, best_net_acc*100))
-             
-    graphResults(getHyperParamString(), X_train, hp_batch_size, val_losses, val_accs, losses, accs)
-    return best_net, best_net_acc*100
-
-
-def trainNeuralNetwork_SGD(X_train, Y_train, X_val, Y_val):
-    
-    net = FeedForwardNeuralNetwork(X_train.shape[1], 10, hp_width_of_layers, hp_number_of_layers)
-    
-    # loss vars
-    losses = []; val_losses = []; accs = []; val_accs = []
-    
-    # rollback vars
-    best_net = net; best_net_acc = 0
-    
-    lossFunc = CrossEntropySoftmax()
-    
-    inds = np.arange(len(X_train))
-    for i in range(hp_max_epochs):
-      np.random.shuffle(inds)
-    
-      j = 0
-      acc_running = loss_running = 0
-      while j < len(X_train):
-    
-        b = min(hp_batch_size, len(X_train)-j)
-        X_batch = X_train[inds[j:j+b]]
-        Y_batch = Y_train[inds[j:j+b]].astype(int)
-      
-        
-        logits =      net.forward(X_batch)
-        loss =        lossFunc.forward(logits, Y_batch)
-        predictions = np.argmax(logits,axis=1)[:,np.newaxis]
-        acc =         np.mean( predictions == Y_batch)
-        loss_grad =   lossFunc.backward()
-        
-        net.backward(loss_grad)
-        net.step()
-        losses.append(loss)
-        accs.append(acc)
-        
-        loss_running  += loss*b
-        acc_running   += acc*b
-    
-        j+=hp_batch_size
-    
-      val_loss, val_acc, val_loss_running, val_acc_running = evaluateValidation(net, X_val, Y_val)
-      val_losses.append(val_loss)
-      val_accs.append(val_acc)
-      
-      trainAcc = acc_running / len(X_train)*100
-      
-      loss = loss_running/len(X_train)
       
       # keep track of the epoch with the greatest accuracy
       if (val_acc > best_net_acc):
@@ -234,7 +169,7 @@ def auto_train(X_train, Y_train, X_val, Y_val, train_number_of_layers, train_wid
             print("Training -  hp_number_of_layers: " + str(n) + " hp_width_of_layers: " + str(w))
             hp_number_of_layers = n
             hp_width_of_layers = w
-            neuralNetwork, acc = trainNeuralNetwork_SGD(X_train, Y_train, X_val, Y_val)
+            neuralNetwork, acc = trainNeuralNetwork(X_train, Y_train, X_val, Y_val)
             if (acc > best_acc):
                 best_nn = neuralNetwork
                 best_acc = acc
@@ -256,7 +191,7 @@ class CrossEntropySoftmax:
         print("[softmax forward]")
     self.probs = softmax(logits)
     self.labels = labels
-    ret = -np.mean(np.log(self.probs[np.arange(len(self.probs))[:,np.newaxis],labels]+0.00001))
+    ret = -np.mean(np.log(self.probs[np.arange(len(self.probs))[:,np.newaxis],labels]+numStability))
     return ret
 
   def backward(self):
@@ -283,7 +218,7 @@ class ReLU:
     ret = grad * self.mask
     return ret
 
-  def step(self):
+  def step(self, stepNum, step_size):
     if logEachNode == True:
         print("[ReLU step]")
     return
@@ -293,7 +228,9 @@ class LinearLayer:
 
   def __init__(self, input_dim, output_dim):
     self.weights = np.random.randn(input_dim, output_dim)* np.sqrt(2. / input_dim)
-    self.bias = np.ones( (1,output_dim) )*0.5
+    self.bias = np.ones((1,output_dim))*0.5
+    self.s = np.zeros((1,output_dim))
+    self.r = np.zeros((1,output_dim))
     
   def forward(self, input):
     if logEachNode == True:
@@ -310,11 +247,50 @@ class LinearLayer:
     ret = grad @ self.weights.T
     return ret
     
-  def step(self):
+  def step(self, currentStep, step_size):
     if logEachNode == True:
         print("[LinearLayer step]")
-    self.weights -= hp_step_size*self.grad_weights
-    self.bias -= hp_step_size*self.grad_bias
+    if hp_opti_method == "SGD":
+        self.weights -= hp_step_size*self.grad_weights
+        self.bias -= hp_step_size*self.grad_bias
+    if hp_opti_method == "ADAM":
+        
+        self.s = b1 * self.s + (1 - b1) * self.grad_weights
+        self.r = b2 * self.r + (1 - b2) * self.grad_weights ** 2
+        s_hat = self.s / (1 - b1 ** (hp_step_size+1))
+        r_hat = self.r / (1 - b2 ** (hp_step_size+1))
+        
+        self.weights = self.weights - hp_step_size * (s_hat / (np.sqrt(r_hat) + numStability))
+        self.bias -= hp_step_size*self.grad_bias
+        
+        
+        """
+        m = [0 for i in range(len(self.weights))]
+        v = [0 for i in range(len(self.weights))]
+        g = [0 for i in range(len(self.weights))]
+        
+        # m = mean
+        # v = variance
+        
+        g = self.grad_weights
+        
+        # Update the m and v parameter
+        m = [b1*m_i + (1 - b1)*g_i for m_i, g_i in zip(m, g)]
+        v = [b2*v_i + (1 - b2)*(g_i**2) for v_i, g_i in zip(v, g)]
+        
+        # Bias correction for m and v
+        m_cor = [m_i / (1 - (b1**stepNum)) for m_i in m]
+        v_cor = [v_i / (1 - (b2**stepNum)) for v_i in v]
+        
+        
+        # # Update the parameter
+        new_g = [weight - (learning_rate / (np.sqrt(v_cor_i) + epsilon))*m_cor_i for weight, v_cor_i, m_cor_i in zip(g, v_cor, m_cor)]
+        new_g = np.asarray(new_g)
+        diff = hp_step_size*new_g
+        self.grad_weights -= hp_step_size*new_g
+        self.bias -= hp_step_size*self.grad_bias
+        """
+        
 
 
 def evaluateValidation(model, X_val, Y_val):
@@ -373,9 +349,9 @@ class FeedForwardNeuralNetwork:
     for layer in reversed(self.layers):
       grad = layer.backward(grad)
 
-  def step(self):
+  def step(self, currentStep, step_size):
     for layer in self.layers:
-      layer.step()
+      layer.step(currentStep, step_size)
 
 
 
