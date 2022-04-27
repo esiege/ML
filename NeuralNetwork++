@@ -3,6 +3,7 @@ import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 import matplotlib
+import random
 font = {'weight' : 'normal','size'   : 22}
 matplotlib.rc('font', **font)
 import logging
@@ -20,7 +21,7 @@ numStability = 1e-6 # aka epsilon
 
 # here be the magic numbers
 
-hp_max_epochs = 1000
+hp_max_epochs = 100
 hp_batch_size = 200
 hp_stopWhenTrainAccIs100 = True
 hp_step_size = 0.001
@@ -28,14 +29,17 @@ hp_number_of_layers = 4
 hp_width_of_layers = 256
 hp_decay = 0.9
 hp_opti_method = "ADAM"
+hp_opti_method_lambda = 0.7 # 1 == ADAM, 0 == SGD, 0.5 = 50/50
+hp_opti_method_lambda_random = False 
 
     
 b1 = 0.9
 b2 = 0.999
     
 
-auto_train_number_of_layers = [2,4,8,16,32,64,128,256]
-auto_train_width_of_layers = [2,4,8,16,32,64,128,256,512,1024]
+auto_train_number_of_layers = [4]
+auto_train_width_of_layers = [512]
+auto_train_hp_opti_method_lambda = [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1]
 
 
 
@@ -48,33 +52,9 @@ def main():
     num_examples, input_dim = X_train.shape
     output_dim = 3 # number of class labels
     
-    # Run
+  # Run
     neuralNetwork, acc = trainNeuralNetwork(X_train, Y_train, X_val, Y_val)
-  
-    auto_train(X_train, Y_train, X_val, Y_val, auto_train_number_of_layers, auto_train_width_of_layers)
-
-
-  # For each epoch below max epochs
-
-    # Scramble order of examples
-
-    # for each batch in data:
-
-      # Gather batch
-
-      # Compute forward pass
-
-      # Compute loss
-
-      # Backward loss and networks
-
-      # Take optimizer step
-
-      # Book-keeping for loss / accuracy
-  
-    # Evaluate performance on validation.
-
-
+    #auto_train(X_train, Y_train, X_val, Y_val, auto_train_number_of_layers, auto_train_width_of_layers, auto_train_hp_opti_method_lambda)
 
 
 def trainNeuralNetwork(X_train, Y_train, X_val, Y_val):
@@ -153,34 +133,37 @@ def trainNeuralNetwork(X_train, Y_train, X_val, Y_val):
     graphResults(getHyperParamString(), X_train, hp_batch_size, val_losses, val_accs, losses, accs)
     return best_net, best_net_acc*100
 
-def auto_train(X_train, Y_train, X_val, Y_val, train_number_of_layers, train_width_of_layers):
+def auto_train(X_train, Y_train, X_val, Y_val, train_number_of_layers, train_width_of_layers, train_hp_opti_method_lambda):
     
     global hp_number_of_layers
     global hp_width_of_layers
+    global hp_opti_method_lambda
     
     print("Auto_Train commenced!  Start your engines.")
 
     best_acc = 0
     best_nn = []
-    for n in train_number_of_layers:
-        print("")
-        for w in train_width_of_layers:
-            printDiv(1)
-            print("Training -  hp_number_of_layers: " + str(n) + " hp_width_of_layers: " + str(w))
-            hp_number_of_layers = n
-            hp_width_of_layers = w
-            neuralNetwork, acc = trainNeuralNetwork(X_train, Y_train, X_val, Y_val)
-            if (acc > best_acc):
-                best_nn = neuralNetwork
-                best_acc = acc
-                best_number_of_layers = hp_number_of_layers
-                best_width_of_layers = hp_width_of_layers
-                printDiv(2)
-                print("Found new best -  ")
-                print(getHyperParamString())
-                printDiv(2)
-    hp_number_of_layers = best_number_of_layers
-    hp_width_of_layers = best_width_of_layers
+    for t in auto_train_hp_opti_method_lambda:
+        for n in train_number_of_layers:
+            print("")
+            for w in train_width_of_layers:
+                printDiv(1)
+                print("Training -  hp_number_of_layers: " + str(n) + " hp_width_of_layers: " + str(w) + " hp_opti_method_lambda: " + str(t))
+                hp_number_of_layers = n
+                hp_width_of_layers = w
+                hp_opti_method_lambda = t
+                neuralNetwork, acc = trainNeuralNetwork(X_train, Y_train, X_val, Y_val)
+                if (acc > best_acc):
+                    best_nn = neuralNetwork
+                    best_acc = acc
+                    best_number_of_layers = hp_number_of_layers
+                    best_width_of_layers = hp_width_of_layers
+                    printDiv(2)
+                    print("Found new best -  ")
+                    print(getHyperParamString())
+                    printDiv(2)
+        hp_number_of_layers = best_number_of_layers
+        hp_width_of_layers = best_width_of_layers
     return
 
 
@@ -250,47 +233,25 @@ class LinearLayer:
   def step(self, currentStep, step_size):
     if logEachNode == True:
         print("[LinearLayer step]")
-    if hp_opti_method == "SGD":
-        self.weights -= hp_step_size*self.grad_weights
-        self.bias -= hp_step_size*self.grad_bias
-    if hp_opti_method == "ADAM":
         
-        self.s = b1 * self.s + (1 - b1) * self.grad_weights
-        self.r = b2 * self.r + (1 - b2) * self.grad_weights ** 2
-        s_hat = self.s / (1 - b1 ** (hp_step_size+1))
-        r_hat = self.r / (1 - b2 ** (hp_step_size+1))
-        
-        self.weights = self.weights - hp_step_size * (s_hat / (np.sqrt(r_hat) + numStability))
-        self.bias -= hp_step_size*self.grad_bias
-        
-        
-        """
-        m = [0 for i in range(len(self.weights))]
-        v = [0 for i in range(len(self.weights))]
-        g = [0 for i in range(len(self.weights))]
-        
-        # m = mean
-        # v = variance
-        
-        g = self.grad_weights
-        
-        # Update the m and v parameter
-        m = [b1*m_i + (1 - b1)*g_i for m_i, g_i in zip(m, g)]
-        v = [b2*v_i + (1 - b2)*(g_i**2) for v_i, g_i in zip(v, g)]
-        
-        # Bias correction for m and v
-        m_cor = [m_i / (1 - (b1**stepNum)) for m_i in m]
-        v_cor = [v_i / (1 - (b2**stepNum)) for v_i in v]
-        
-        
-        # # Update the parameter
-        new_g = [weight - (learning_rate / (np.sqrt(v_cor_i) + epsilon))*m_cor_i for weight, v_cor_i, m_cor_i in zip(g, v_cor, m_cor)]
-        new_g = np.asarray(new_g)
-        diff = hp_step_size*new_g
-        self.grad_weights -= hp_step_size*new_g
-        self.bias -= hp_step_size*self.grad_bias
-        """
-        
+    SGD_weights = self.weights - hp_step_size * self.grad_weights
+    
+    self.s = b1 * self.s + (1 - b1) * self.grad_weights
+    self.r = b2 * self.r + (1 - b2) * self.grad_weights ** 2
+    s_hat = self.s / (1 - b1 ** (step_size+1))
+    r_hat = self.r / (1 - b2 ** (step_size+1))
+    
+    ADAM_weights = self.weights - step_size * (s_hat / (np.sqrt(r_hat) + numStability))
+    
+    l = hp_opti_method_lambda
+    if hp_opti_method_lambda_random == True:
+        l = random.random()
+
+    #optimization method - use both ADAM and SGD in conjunction. if hp_opti_method_lambda == 1, only ADAM
+    self.weights = (ADAM_weights * hp_opti_method_lambda) + (SGD_weights * (1-hp_opti_method_lambda))
+
+    self.bias -= ((step_size * l) + (hp_step_size * (1-l)))*self.grad_bias
+
 
 
 def evaluateValidation(model, X_val, Y_val):
@@ -321,7 +282,7 @@ def evaluateValidation(model, X_val, Y_val):
 
 
 def softmax(x):
-  ret_x = x - np.max(x,axis=1)[:,np.newaxis]  # Numerical stability trick
+  ret_x = x - np.max(x,axis=1)[:,np.newaxis]  # Numerical stability trick, subtract max from x
   ret = np.exp(ret_x) / (np.sum(np.exp(ret_x),axis=1)[:,np.newaxis]) 
   return ret
 
@@ -437,6 +398,8 @@ def getHyperParamString():
     ret += "hp_number_of_layers = " + str(hp_number_of_layers) + "\n"
     ret += "hp_width_of_layers = " + str(hp_width_of_layers) + "\n"
     ret += "hp_decay = " + str(hp_decay) + "\n"
+    ret += "hp_opti_method_lambda = " + str(hp_opti_method_lambda) + "\n"
+    ret += "hp_opti_method_lambda_random = " + str(hp_opti_method_lambda_random) + "\n"
     return ret
     
 
