@@ -16,26 +16,19 @@ np.random.seed(102)
 
 logEachNode = False # very slow to log, print every back/forward call
 trainPrintMod = 100 # always print this%currentepoch.  We also always print the new best and other conditions.
-
 numStability = 1e-6 # aka epsilon
 
 # here be the magic numbers
-
-hp_max_epochs = 100
+hp_max_epochs = 20
 hp_batch_size = 200
 hp_stopWhenTrainAccIs100 = True
 hp_step_size = 0.001
 hp_number_of_layers = 4
 hp_width_of_layers = 256
 hp_decay = 0.9
-hp_opti_method = "ADAM"
-hp_opti_method_lambda = 0.7 # 1 == ADAM, 0 == SGD, 0.5 = 50/50
+hp_opti_method_lambda = 0.4 # 1 == ADAM, 0 == SGD, 0.5 = 50/50
 hp_opti_method_lambda_random = False 
 
-    
-b1 = 0.9
-b2 = 0.999
-    
 
 auto_train_number_of_layers = [4]
 auto_train_width_of_layers = [512]
@@ -50,12 +43,20 @@ def main():
   
   # Some helpful dimensions
     num_examples, input_dim = X_train.shape
-    output_dim = 3 # number of class labels
+    output_dim = 1 # number of class labels
     
-  # Run
+  # Train
     neuralNetwork, acc = trainNeuralNetwork(X_train, Y_train, X_val, Y_val)
     #auto_train(X_train, Y_train, X_val, Y_val, auto_train_number_of_layers, auto_train_width_of_layers, auto_train_hp_opti_method_lambda)
 
+
+    
+    val_loss, val_acc, val_loss_running, val_acc_running = evaluate(neuralNetwork, X_test, Y_test)
+    printDiv()
+    printDiv()
+    print("Test Loss:  {:8.4}%      Test Acc:  {:8.4}%".format(val_loss, val_acc*100))
+    printDiv()
+    printDiv()
 
 def trainNeuralNetwork(X_train, Y_train, X_val, Y_val):
     global hp_step_size
@@ -99,7 +100,7 @@ def trainNeuralNetwork(X_train, Y_train, X_val, Y_val):
     
         j+=hp_batch_size
     
-      val_loss, val_acc, val_loss_running, val_acc_running = evaluateValidation(net, X_val, Y_val)
+      val_loss, val_acc, val_loss_running, val_acc_running = evaluate(net, X_val, Y_val)
       val_losses.append(val_loss)
       val_accs.append(val_acc)
       
@@ -133,6 +134,13 @@ def trainNeuralNetwork(X_train, Y_train, X_val, Y_val):
     graphResults(getHyperParamString(), X_train, hp_batch_size, val_losses, val_accs, losses, accs)
     return best_net, best_net_acc*100
 
+
+def getPredictions(model, X_val):
+      logits = model.forward(X_val)
+      predictions = np.argmax(logits,axis=1)[:,np.newaxis]
+      return predictions
+  
+    
 def auto_train(X_train, Y_train, X_val, Y_val, train_number_of_layers, train_width_of_layers, train_hp_opti_method_lambda):
     
     global hp_number_of_layers
@@ -201,7 +209,7 @@ class ReLU:
     ret = grad * self.mask
     return ret
 
-  def step(self, stepNum, step_size):
+  def step(self, currentStep, step_size):
     if logEachNode == True:
         print("[ReLU step]")
     return
@@ -234,12 +242,17 @@ class LinearLayer:
     if logEachNode == True:
         print("[LinearLayer step]")
         
-    SGD_weights = self.weights - hp_step_size * self.grad_weights
+    SGD_weights = self.weights - step_size * self.grad_weights
     
-    self.s = b1 * self.s + (1 - b1) * self.grad_weights
-    self.r = b2 * self.r + (1 - b2) * self.grad_weights ** 2
-    s_hat = self.s / (1 - b1 ** (step_size+1))
-    r_hat = self.r / (1 - b2 ** (step_size+1))
+    b1 = 0.9
+    b2 = 0.999
+    t = currentStep
+    g = self.grad_weights
+    
+    self.s = b1 * self.s + (1 - b1) * g
+    self.r = b2 * self.r + (1 - b2) * g ** 2
+    s_hat = self.s / (1 - b1 ** (t + 1))
+    r_hat = self.r / (1 - b2 ** (t + 1))
     
     ADAM_weights = self.weights - step_size * (s_hat / (np.sqrt(r_hat) + numStability))
     
@@ -249,12 +262,12 @@ class LinearLayer:
 
     #optimization method - use both ADAM and SGD in conjunction. if hp_opti_method_lambda == 1, only ADAM
     self.weights = (ADAM_weights * hp_opti_method_lambda) + (SGD_weights * (1-hp_opti_method_lambda))
-
+    
+    #also some mods here for above method - using both step_size and hp_step_size intentional - hp_step_size has no decay
     self.bias -= ((step_size * l) + (hp_step_size * (1-l)))*self.grad_bias
 
 
-
-def evaluateValidation(model, X_val, Y_val):
+def evaluate(model, X_val, Y_val):
   val_loss_running = []
   val_acc_running = []
   j=0
