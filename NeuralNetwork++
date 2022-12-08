@@ -18,6 +18,8 @@ logEachNode = False # very slow to log, print every back/forward call
 trainPrintMod = 100 # always print this%currentepoch.  We also always print the new best and other conditions.
 numStability = 1e-6 # aka epsilon
 
+# test
+
 # here be the magic numbers
 hp_max_epochs = 20
 hp_batch_size = 200
